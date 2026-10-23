@@ -10,6 +10,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Product> Products { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<Category> Categories { get; set; }
+    public DbSet<PostLike> PostLikes { get; set; }
+    public DbSet<Comment> Comments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,25 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .WithMany()
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Thích: mỗi (bài, người) tối đa một dòng. Xóa bài thì xóa lượt thích theo (Cascade).
+        // UserId dùng NoAction: SQL Server không cho phép nhiều đường cascade/set-null từ User tới cùng một bảng
+        // (User -> Post[SetNull] -> PostLike[Cascade] đã là một đường), nên xóa hẳn một tài khoản cần xóa like/bình luận của nó trước.
+        modelBuilder.Entity<PostLike>(like =>
+        {
+            like.HasKey(l => new { l.PostId, l.UserId });
+            like.HasOne(l => l.Post).WithMany(p => p.Likes).HasForeignKey(l => l.PostId).OnDelete(DeleteBehavior.Cascade);
+            like.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.NoAction);
+            like.HasIndex(l => new { l.UserId, l.CreatedAt });
+        });
+
+        // Bình luận: xóa bài thì xóa bình luận theo (Cascade)
+        modelBuilder.Entity<Comment>(comment =>
+        {
+            comment.HasOne(c => c.Post).WithMany(p => p.Comments).HasForeignKey(c => c.PostId).OnDelete(DeleteBehavior.Cascade);
+            comment.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.NoAction);
+            comment.HasIndex(c => new { c.PostId, c.CreatedAt });
+        });
 
         // Dữ liệu mẫu cho bài đăng (HasData cần giá trị cố định, nên CreatedAt ghi cứng và phải nằm trong quá khứ)
         const string img = "https://flutter.github.io/assets-for-api-docs/assets/widgets/";

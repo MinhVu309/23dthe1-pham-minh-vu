@@ -176,6 +176,38 @@ namespace _23DTHE1_pham_minh_vu.Migrations
                     b.ToTable("Categories", "identity");
                 });
 
+            modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.Comment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PostId", "CreatedAt");
+
+                    b.ToTable("Comments", "identity");
+                });
+
             modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -269,6 +301,24 @@ namespace _23DTHE1_pham_minh_vu.Migrations
                             UserAvatar = "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl-2.jpg",
                             UserName = "Hoàng Thị D"
                         });
+                });
+
+            modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.PostLike", b =>
+                {
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PostId", "UserId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("PostLikes", "identity");
                 });
 
             modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.Product", b =>
@@ -437,12 +487,50 @@ namespace _23DTHE1_pham_minh_vu.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.Comment", b =>
+                {
+                    b.HasOne("_23DTHE1_pham_minh_vu.Models.Post", "Post")
+                        .WithMany("Comments")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("_23DTHE1_pham_minh_vu.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.Post", b =>
                 {
                     b.HasOne("_23DTHE1_pham_minh_vu.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.PostLike", b =>
+                {
+                    b.HasOne("_23DTHE1_pham_minh_vu.Models.Post", "Post")
+                        .WithMany("Likes")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("_23DTHE1_pham_minh_vu.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Post");
 
                     b.Navigation("User");
                 });
@@ -460,6 +548,13 @@ namespace _23DTHE1_pham_minh_vu.Migrations
             modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.Category", b =>
                 {
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("_23DTHE1_pham_minh_vu.Models.Post", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Likes");
                 });
 #pragma warning restore 612, 618
         }
