@@ -19,7 +19,14 @@ Script tự đăng ký `admin1` / `user1` nếu chưa có, và xóa lại mọi 
 | Danh mục | User xem được, chỉ Admin thêm/sửa/xóa; xóa danh mục → sản phẩm về `categoryId = null` và vẫn còn |
 | Bài đăng Tuần 6 | đủ trường JSON cũ (`userName`, `userAvatar`, `content`, `image`, `createdAt`, `likeCount`, `commentCount`); thêm/sửa/xóa bài của chính mình; sửa không đổi `createdAt` |
 
-Kết quả mốc: baseline Tuần 6-7 = **40 đạt, 0 lỗi** (`PHASE=baseline`).
+Kết quả mốc: baseline Tuần 6-7 = **40 đạt, 0 lỗi** (`PHASE=baseline`); sau nâng cấp mạng xã hội = **40 đạt, 0 lỗi** (`PHASE=upgrade`, mặc định).
+
+Phần mạng xã hội có script riêng: `docs/social_tests.sh` (bài đăng gắn tài khoản, sửa/xóa theo quyền, thích, bình luận, thông báo,
+phân trang, hồ sơ, upload ảnh kể cả tệp giả mạo, token cũ). Kết quả: **140 đạt, 0 lỗi**. Script tự dọn dữ liệu, ảnh đã upload và
+khôi phục hồ sơ `user1`. Cần Docker `sqlserver` đang chạy nếu muốn kiểm tra thêm việc xóa bài kéo theo xóa like/bình luận trong CSDL.
+
+> Khác biệt có chủ đích so với Tuần 6: `GET api/PostApi` giờ **cần đăng nhập**, sửa/xóa bài chỉ chủ bài hoặc Admin (bài mẫu cũ chỉ Admin),
+> `likeCount`/`commentCount` không còn sửa được qua PUT. Ba mục này khác với phần "Bài đăng Tuần 6" ở trên nên script dùng `PHASE`.
 
 ## 2. Phần chạy tay trên Android emulator (Pixel 7)
 
@@ -34,7 +41,7 @@ Chạy: `docker start sqlserver` → `dotnet run --launch-profile http` → `flu
 - [ ] Token hết hạn → về Đăng nhập kèm thông báo "Phiên đăng nhập đã hết hạn" (thử nhanh: `JWTKey__TokenExpiryTimeInHour=0.004 dotnet run --launch-profile http`).
 - [ ] Sản phẩm: danh sách, tìm kiếm (gõ rồi chờ ~0,4 s), chi tiết, thêm, sửa, xóa có xác nhận; SnackBar thành công/thất bại; ảnh "Cập nhật sau" hiện icon thay thế.
 - [ ] Danh mục (Admin): thêm/sửa/xóa; sản phẩm có danh mục hiện tên danh mục + chip lọc; xóa danh mục → sản phẩm sang "Chưa phân loại".
-- [ ] Bảng tin: danh sách bài, kéo để làm mới, đăng bài, sửa bài, xóa bài có xác nhận.
+- [ ] Bảng tin: danh sách bài, kéo để làm mới, đăng bài, sửa bài, xóa bài có xác nhận. *(sau nâng cấp: User chỉ sửa/xóa được bài của mình; bài mẫu cũ báo "Bạn không có quyền thực hiện thao tác này")*
 - [ ] Đăng ký → nút SIM ở ô số điện thoại mở hộp thoại Google và điền số (smart_auth, chỉ Android).
 
 ## 3. Sao lưu / khôi phục CSDL

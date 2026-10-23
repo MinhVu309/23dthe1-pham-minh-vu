@@ -1,8 +1,10 @@
 using _23DTHE1_pham_minh_vu.Models;
 using _23DTHE1_pham_minh_vu.Repositories;
+using _23DTHE1_pham_minh_vu.Services;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -64,6 +66,9 @@ builder.Services.AddControllers()
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options =>
 {
@@ -134,6 +139,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Phục vụ ảnh người dùng upload: /uploads/<tên-ngẫu-nhiên>.jpg|png|webp (thư mục wwwroot/uploads)
+// Chỉ một cấu hình duy nhất cho /uploads: nếu có thêm app.UseStaticFiles() mặc định đứng trước nó sẽ phục vụ
+// thư mục này mà không đặt header bảo mật bên dưới.
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads");
+Directory.CreateDirectory(uploadsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads",
+    // Không cho trình duyệt đoán kiểu nội dung: tệp trong uploads chỉ được coi là ảnh
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers["X-Content-Type-Options"] = "nosniff",
+});
 
 // Áp dụng CORS cho các yêu cầu đến API
 app.UseCors("MyAllowOrigins");

@@ -13,6 +13,7 @@ Content-Type: application/json
   "email": "admin1@example.com",
   "password": "Admin@12345",
   "initials": "AD",
+  "displayName": "Quản trị viên",
   "role": "Admin"
 }
 
@@ -148,40 +149,119 @@ Authorization: Bearer {{adminToken}}
 DELETE {{HostAddress}}/api/CategoryApi/1
 Authorization: Bearer {{adminToken}}
 
-### ===================== PostApi (không cần đăng nhập) =====================
+### ===================== PostApi (cần đăng nhập) =====================
+# Bài đăng gắn với tài khoản: server TỰ gán userId, userName (= tên hiển thị), userAvatar từ token;
+# mọi trường khác client gửi (userName, likeCount, createdAt...) đều bị bỏ qua.
+# Sửa/xóa: chỉ chủ bài hoặc Admin (403 nếu không). Bài mẫu cũ không có chủ: chỉ Admin.
 
-### Lấy danh sách bài đăng (mới nhất trước)
+### Không có token -> 401
 GET {{HostAddress}}/api/PostApi
 
-### Lấy bài đăng theo ID
-GET {{HostAddress}}/api/PostApi/1
+### Danh sách (KHÔNG truyền page: trả mảng, mới nhất trước, tối đa 50 bài)
+GET {{HostAddress}}/api/PostApi
+Authorization: Bearer {{userToken}}
 
-### Thêm bài đăng (CreatedAt do server gán)
+### Phân trang -> { items, page, pageSize, totalCount, hasMore } (pageSize mặc định 10, tối đa 50)
+GET {{HostAddress}}/api/PostApi?page=1&pageSize=10
+Authorization: Bearer {{userToken}}
+
+### Lấy bài đăng theo ID (kèm likedByMe, canEdit)
+GET {{HostAddress}}/api/PostApi/1
+Authorization: Bearer {{userToken}}
+
+### Đăng bài (chỉ content và image được nhận; cần ít nhất một trong hai)
+# @name createPost
 POST {{HostAddress}}/api/PostApi
 Content-Type: application/json
+Authorization: Bearer {{userToken}}
 
 {
-  "userName": "Phạm Minh Vũ",
-  "userAvatar": "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg",
   "content": "Bài đăng thử từ file .http",
-  "image": "https://flutter.github.io/assets-for-api-docs/assets/widgets/falcon.jpg",
-  "likeCount": 0,
-  "commentCount": 0
+  "image": "https://flutter.github.io/assets-for-api-docs/assets/widgets/falcon.jpg"
 }
 
-### Sửa bài đăng (gửi cả id trong body)
-PUT {{HostAddress}}/api/PostApi/1
+###
+@postId = {{createPost.response.body.$.id}}
+
+### Sửa bài (chủ bài hoặc Admin); chỉ đổi được content và image
+PUT {{HostAddress}}/api/PostApi/{{postId}}
 Content-Type: application/json
+Authorization: Bearer {{userToken}}
 
 {
-  "id": 1,
-  "userName": "Phạm Minh Vũ",
-  "userAvatar": "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg",
   "content": "Nội dung đã sửa",
-  "image": null,
-  "likeCount": 12,
-  "commentCount": 3
+  "image": null
 }
 
-### Xóa bài đăng
-DELETE {{HostAddress}}/api/PostApi/1
+### Xóa bài (chủ bài hoặc Admin) -> like và bình luận bị xóa theo
+DELETE {{HostAddress}}/api/PostApi/{{postId}}
+Authorization: Bearer {{userToken}}
+
+### Thích / bỏ thích (toggle) -> { liked, likeCount }
+POST {{HostAddress}}/api/PostApi/{{postId}}/like
+Authorization: Bearer {{adminToken}}
+
+### Bình luận của một bài (cũ nhất trước; page, pageSize tùy chọn; tổng số ở header X-Total-Count)
+GET {{HostAddress}}/api/PostApi/{{postId}}/comments?page=1&pageSize=50
+Authorization: Bearer {{userToken}}
+
+### Thêm bình luận (tối đa 500 ký tự)
+# @name createComment
+POST {{HostAddress}}/api/PostApi/{{postId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{ "content": "Bài viết hay quá!" }
+
+###
+@commentId = {{createComment.response.body.$.id}}
+
+### Xóa bình luận (chủ bình luận, chủ bài hoặc Admin)
+DELETE {{HostAddress}}/api/PostApi/{{postId}}/comments/{{commentId}}
+Authorization: Bearer {{adminToken}}
+
+### ===================== UploadApi =====================
+# multipart/form-data, trường "file". Chỉ .jpg/.jpeg/.png/.webp (kiểm tra cả đuôi lẫn nội dung), tối đa 5MB.
+# Đặt một ảnh tên anh.png cạnh file .http này rồi bấm Send Request. Trả { "url": "http://host/uploads/<guid>.png" }.
+POST {{HostAddress}}/api/UploadApi
+Authorization: Bearer {{userToken}}
+Content-Type: multipart/form-data; boundary=----Ranh_gioi
+
+------Ranh_gioi
+Content-Disposition: form-data; name="file"; filename="anh.png"
+Content-Type: image/png
+
+< ./anh.png
+------Ranh_gioi--
+
+### ===================== ProfileApi (cần đăng nhập) =====================
+
+### Hồ sơ của tôi (đầy đủ: email, số điện thoại, roles, postCount)
+GET {{HostAddress}}/api/ProfileApi/me
+Authorization: Bearer {{userToken}}
+
+### Cập nhật hồ sơ (displayName bắt buộc ≤ 50; bio ≤ 200; ảnh phải là http(s); gửi rỗng = xóa)
+PUT {{HostAddress}}/api/ProfileApi/me
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "displayName": "Người dùng Một",
+  "avatarUrl": "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg",
+  "coverUrl": "https://flutter.github.io/assets-for-api-docs/assets/widgets/falcon.jpg",
+  "bio": "Xin chào!",
+  "phoneNumber": "0901234567"
+}
+
+### Hồ sơ công khai của người khác (KHÔNG có email, số điện thoại, tên đăng nhập). Thay userId bằng "id" lấy từ /me
+GET {{HostAddress}}/api/ProfileApi/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{userToken}}
+
+### Bài đăng của một người (luôn phân trang)
+GET {{HostAddress}}/api/ProfileApi/00000000-0000-0000-0000-000000000000/posts?page=1&pageSize=10
+Authorization: Bearer {{userToken}}
+
+### ===================== NotificationApi =====================
+# Lượt thích và bình luận của NGƯỜI KHÁC trên bài của tôi trong 7 ngày gần nhất (tối đa 50, mới nhất trước)
+GET {{HostAddress}}/api/NotificationApi
+Authorization: Bearer {{userToken}}
