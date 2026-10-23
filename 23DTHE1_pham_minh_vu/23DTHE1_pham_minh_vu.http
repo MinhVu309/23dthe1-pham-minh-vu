@@ -1,0 +1,187 @@
+@HostAddress = http://localhost:5126
+
+### ===================== Authenticate =====================
+# Chạy bằng extension "REST Client" của VS Code. Backend chạy: dotnet run --launch-profile http
+# Mật khẩu cần chữ hoa, chữ thường, số và ký tự đặc biệt (VD: Admin@12345).
+
+### Đăng ký Admin (role chỉ nhận "Admin" hoặc "User"; bỏ trống = User)
+POST {{HostAddress}}/api/Authenticate/register
+Content-Type: application/json
+
+{
+  "username": "admin1",
+  "email": "admin1@example.com",
+  "password": "Admin@12345",
+  "initials": "AD",
+  "role": "Admin"
+}
+
+### Đăng ký User (kèm số điện thoại, không bắt buộc)
+POST {{HostAddress}}/api/Authenticate/register
+Content-Type: application/json
+
+{
+  "username": "user1",
+  "email": "user1@example.com",
+  "password": "User@12345",
+  "phoneNumber": "0901234567",
+  "role": "User"
+}
+
+### Đăng nhập Admin -> { status, message, token }
+# @name loginAdmin
+POST {{HostAddress}}/api/Authenticate/login
+Content-Type: application/json
+
+{
+  "username": "admin1",
+  "password": "Admin@12345"
+}
+
+### Đăng nhập User
+# @name loginUser
+POST {{HostAddress}}/api/Authenticate/login
+Content-Type: application/json
+
+{
+  "username": "user1",
+  "password": "User@12345"
+}
+
+### Đăng nhập sai mật khẩu -> 401
+POST {{HostAddress}}/api/Authenticate/login
+Content-Type: application/json
+
+{
+  "username": "admin1",
+  "password": "sai-mat-khau"
+}
+
+###
+# Token lấy từ 2 request đăng nhập ở trên (chạy chúng trước)
+@adminToken = {{loginAdmin.response.body.$.token}}
+@userToken = {{loginUser.response.body.$.token}}
+
+### ===================== ProductApi =====================
+# Xem (GET): cần đăng nhập (User hoặc Admin). Thêm/sửa/xóa: chỉ Admin.
+
+### Không có token -> 401
+GET {{HostAddress}}/api/ProductApi
+
+### Lấy danh sách sản phẩm (User)
+GET {{HostAddress}}/api/ProductApi
+Authorization: Bearer {{userToken}}
+
+### Lấy sản phẩm theo ID
+GET {{HostAddress}}/api/ProductApi/1
+Authorization: Bearer {{userToken}}
+
+### Tìm sản phẩm theo tên (không phân biệt hoa thường)
+GET {{HostAddress}}/api/ProductApi/search?name=phone
+Authorization: Bearer {{userToken}}
+
+### User thêm sản phẩm -> 403
+POST {{HostAddress}}/api/ProductApi
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{ "name": "x", "price": 1 }
+
+### Admin thêm sản phẩm (categoryId có thể bỏ trống/null; phải là danh mục tồn tại)
+POST {{HostAddress}}/api/ProductApi
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "iPhone 15",
+  "price": 20000000,
+  "image": "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg",
+  "description": "Điện thoại",
+  "categoryId": null
+}
+
+### Admin sửa sản phẩm (phải gửi cả id trong body, trùng với id trên URL)
+PUT {{HostAddress}}/api/ProductApi/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "id": 1,
+  "name": "Sản phẩm 1",
+  "price": 10000,
+  "image": "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg",
+  "description": "chim cú",
+  "categoryId": null
+}
+
+### Admin xóa sản phẩm
+DELETE {{HostAddress}}/api/ProductApi/1
+Authorization: Bearer {{adminToken}}
+
+### ===================== CategoryApi =====================
+# Xem (GET): cần đăng nhập. Thêm/sửa/xóa: chỉ Admin.
+# Xóa danh mục -> các sản phẩm thuộc danh mục tự về categoryId = null.
+
+### Danh sách danh mục
+GET {{HostAddress}}/api/CategoryApi
+Authorization: Bearer {{userToken}}
+
+### Danh mục theo ID
+GET {{HostAddress}}/api/CategoryApi/1
+Authorization: Bearer {{userToken}}
+
+### Admin thêm danh mục
+POST {{HostAddress}}/api/CategoryApi
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{ "name": "Điện thoại", "description": "Điện thoại di động" }
+
+### Admin sửa danh mục (gửi cả id trong body)
+PUT {{HostAddress}}/api/CategoryApi/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{ "id": 1, "name": "Điện thoại (sửa)", "description": "Đã sửa" }
+
+### Admin xóa danh mục
+DELETE {{HostAddress}}/api/CategoryApi/1
+Authorization: Bearer {{adminToken}}
+
+### ===================== PostApi (không cần đăng nhập) =====================
+
+### Lấy danh sách bài đăng (mới nhất trước)
+GET {{HostAddress}}/api/PostApi
+
+### Lấy bài đăng theo ID
+GET {{HostAddress}}/api/PostApi/1
+
+### Thêm bài đăng (CreatedAt do server gán)
+POST {{HostAddress}}/api/PostApi
+Content-Type: application/json
+
+{
+  "userName": "Phạm Minh Vũ",
+  "userAvatar": "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg",
+  "content": "Bài đăng thử từ file .http",
+  "image": "https://flutter.github.io/assets-for-api-docs/assets/widgets/falcon.jpg",
+  "likeCount": 0,
+  "commentCount": 0
+}
+
+### Sửa bài đăng (gửi cả id trong body)
+PUT {{HostAddress}}/api/PostApi/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "userName": "Phạm Minh Vũ",
+  "userAvatar": "https://flutter.github.io/assets-for-api-docs/assets/widgets/owl.jpg",
+  "content": "Nội dung đã sửa",
+  "image": null,
+  "likeCount": 12,
+  "commentCount": 3
+}
+
+### Xóa bài đăng
+DELETE {{HostAddress}}/api/PostApi/1
