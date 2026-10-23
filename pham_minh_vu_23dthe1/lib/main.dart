@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'screens/auth_gate.dart';
 import 'services/api_client.dart';
+import 'theme/app_theme.dart';
 import 'utils/session.dart';
 
 Future<void> main() async {
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
       title: '23DTHE1 - Phạm Minh Vũ',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+      theme: AppTheme.light,
       home: const AuthGate(),
     );
   }

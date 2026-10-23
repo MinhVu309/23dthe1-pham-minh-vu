@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/login_screen.dart';
+import '../services/current_user_store.dart';
 import 'auth.dart';
 
 /// Navigator toàn cục để chuyển về LoginScreen từ nơi không có BuildContext (VD khi API trả 401).
@@ -10,6 +11,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 /// (pushAndRemoveUntil chứ không dùng popUntil(isFirst), vì màn hình đầu chưa chắc là LoginScreen).
 Future<void> logout({String? notice}) async {
   await Auth.logout();
+  currentUser.clear(); // tránh hiện lại tên/ảnh của tài khoản cũ khi người khác đăng nhập
   navigatorKey.currentState?.pushAndRemoveUntil(
     MaterialPageRoute(builder: (_) => LoginScreen(notice: notice)),
     (route) => false,

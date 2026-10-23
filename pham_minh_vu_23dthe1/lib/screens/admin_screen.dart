@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/logout_button.dart';
 import 'category_management_screen.dart';
+import 'home_screen.dart';
 import 'market_screen.dart';
 
 /// Trang dành cho Admin: quản lý sản phẩm (thêm/sửa/xóa) và danh mục sản phẩm.
@@ -20,7 +21,17 @@ class _AdminScreenState extends State<AdminScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_index == 0 ? 'Admin - Sản phẩm' : 'Admin - Danh mục'),
-        actions: const [LogoutButton()],
+        actions: [
+          IconButton(
+            tooltip: 'Mạng xã hội',
+            icon: const Icon(Icons.dynamic_feed),
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+          ),
+          const LogoutButton(),
+        ],
       ),
       // Không dùng IndexedStack: mỗi lần đổi tab sẽ tải lại để danh mục/sản phẩm luôn mới
       body: _index == 0

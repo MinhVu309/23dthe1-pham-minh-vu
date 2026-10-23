@@ -53,6 +53,23 @@ class ApiClient {
     return _send((h) => _client.delete(_uri(endpoint), headers: h), headers, authenticated);
   }
 
+  /// Upload một tệp (multipart/form-data). Tên tệp phải giữ đuôi .jpg/.png/.webp vì server kiểm tra cả đuôi lẫn nội dung.
+  Future<http.Response> postFile(
+    String endpoint, {
+    required String field,
+    required String filePath,
+    String? filename,
+  }) async {
+    final token = await TokenStorage.read();
+    final request = http.MultipartRequest('POST', _uri(endpoint));
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath(field, filePath, filename: filename));
+
+    final response = await http.Response.fromStream(await _client.send(request));
+    if (response.statusCode == 401 && token != null) await _handleUnauthorized();
+    return response;
+  }
+
   Uri _uri(String endpoint) => Uri.parse('$baseUrl$endpoint');
 
   Future<http.Response> _send(

@@ -31,6 +31,34 @@ class ErrorView extends StatelessWidget {
   }
 }
 
+/// Trạng thái rỗng (chưa có dữ liệu), có thể kèm nút hành động. Bọc trong ListView để vẫn kéo-để-làm-mới được.
+class EmptyView extends StatelessWidget {
+  const EmptyView({super.key, required this.icon, required this.message, this.actionLabel, this.onAction});
+
+  final IconData icon;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 56),
+      child: Column(
+        children: [
+          Icon(icon, size: 56, color: const Color(0xFF65676B)),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF65676B), fontSize: 15)),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 void showSnack(BuildContext context, String message, {bool error = false}) {
   final messenger = ScaffoldMessenger.of(context);
   messenger

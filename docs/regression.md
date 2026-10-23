@@ -42,6 +42,11 @@ Chạy: `docker start sqlserver` → `dotnet run --launch-profile http` → `flu
 - [ ] Sản phẩm: danh sách, tìm kiếm (gõ rồi chờ ~0,4 s), chi tiết, thêm, sửa, xóa có xác nhận; SnackBar thành công/thất bại; ảnh "Cập nhật sau" hiện icon thay thế.
 - [ ] Danh mục (Admin): thêm/sửa/xóa; sản phẩm có danh mục hiện tên danh mục + chip lọc; xóa danh mục → sản phẩm sang "Chưa phân loại".
 - [ ] Bảng tin: danh sách bài, kéo để làm mới, đăng bài, sửa bài, xóa bài có xác nhận. *(sau nâng cấp: User chỉ sửa/xóa được bài của mình; bài mẫu cũ báo "Bạn không có quyền thực hiện thao tác này")*
+- [ ] **Giao diện mạng xã hội (User):** AppBar có tên app + 2 nút tròn (Tìm kiếm/Tin nhắn hiện SnackBar "sẽ cập nhật sau"); TabBar 5 tab (Bảng tin, Chợ, Thông báo có badge, Cá nhân, Menu).
+- [ ] Bảng tin: ô "Bạn đang nghĩ gì?"; đăng bài có ảnh (chọn từ thư viện, có xem trước và nút gỡ ảnh); Thích đổi màu xanh ngay; bấm đúp ảnh để thích; Bình luận mở bottom sheet (thêm/xóa, số bình luận trên thẻ đổi theo); Chia sẻ mở hộp thoại của Android; cuộn xuống cuối tải trang kế (10 bài/trang) và hiện "Bạn đã xem hết bài viết"; tắt backend rồi mở app → màn lỗi có nút "Thử lại".
+- [ ] Bài của người khác **không có** nút "..."; bài của mình có Sửa/Xóa; Admin có "..." trên mọi bài.
+- [ ] Thông báo: user khác thích/bình luận bài của mình → badge số trên chuông, mở tab thì badge về 0 và mục mới được tô nền xanh nhạt; bấm vào mở đúng bài.
+- [ ] Menu: hiện tài khoản; chỉ Admin có "Trang quản trị"; Đăng xuất có xác nhận.
 - [ ] Đăng ký → nút SIM ở ô số điện thoại mở hộp thoại Google và điền số (smart_auth, chỉ Android).
 
 ## 3. Sao lưu / khôi phục CSDL
