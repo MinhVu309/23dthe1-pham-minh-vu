@@ -18,13 +18,27 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
         // Toàn bộ bảng (kể cả Products, Posts) nằm trong schema "identity" thay vì "dbo"
         modelBuilder.HasDefaultSchema("identity");
-        modelBuilder.Entity<User>().Property(u => u.Initials).HasMaxLength(5);
+        modelBuilder.Entity<User>(user =>
+        {
+            user.Property(u => u.Initials).HasMaxLength(5);
+            user.Property(u => u.DisplayName).HasMaxLength(50);
+            user.Property(u => u.AvatarUrl).HasMaxLength(500);
+            user.Property(u => u.CoverUrl).HasMaxLength(500);
+            user.Property(u => u.Bio).HasMaxLength(200);
+        });
 
         // Xóa danh mục thì CategoryId của các sản phẩm thuộc danh mục đó về NULL (không xóa sản phẩm)
         modelBuilder.Entity<Product>()
             .HasOne(p => p.Category)
             .WithMany(c => c.Products)
             .HasForeignKey(p => p.CategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Xóa tài khoản thì bài đăng ở lại nhưng không còn chủ (UserId = NULL)
+        modelBuilder.Entity<Post>()
+            .HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.SetNull);
 
         // Dữ liệu mẫu cho bài đăng (HasData cần giá trị cố định, nên CreatedAt ghi cứng và phải nằm trong quá khứ)

@@ -46,6 +46,9 @@ public class AuthenticateController : ControllerBase
             var authClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.UserName!),
+                // Id người dùng: bài đăng/like/bình luận gắn theo Id này. Token cũ (không có claim này) vẫn dùng được
+                // vì CurrentUserService tra theo tên đăng nhập.
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
             authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -89,6 +92,10 @@ public class AuthenticateController : ControllerBase
                 UserName = model.Username,
                 Email = model.Email,
                 Initials = model.Initials,
+                // Tên hiển thị mặc định = tên đăng nhập (cắt còn 50 ký tự)
+                DisplayName = string.IsNullOrWhiteSpace(model.DisplayName)
+                    ? Truncate(model.Username, 50)
+                    : model.DisplayName.Trim(),
                 PhoneNumber = string.IsNullOrWhiteSpace(model.PhoneNumber) ? null : model.PhoneNumber.Trim(),
                 SecurityStamp = Guid.NewGuid().ToString(),
             };
@@ -118,6 +125,8 @@ public class AuthenticateController : ControllerBase
             return StatusCode(500, new { status = false, message = "Internal server error" });
         }
     }
+
+    private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];
 
     private JwtSecurityToken CreateToken(List<Claim> authClaims)
     {

@@ -19,6 +19,10 @@ public class RegistrationModel
     [MaxLength(5, ErrorMessage = "Ký tự viết tắt tối đa 5 ký tự")]
     public string? Initials { get; set; }
 
+    // Tên hiển thị (không bắt buộc, tối đa 50); bỏ trống thì dùng tên đăng nhập
+    [MaxLength(50, ErrorMessage = "Tên hiển thị tối đa 50 ký tự")]
+    public string? DisplayName { get; set; }
+
     // Số điện thoại (không bắt buộc), lưu vào IdentityUser.PhoneNumber
     public string? PhoneNumber { get; set; }
 
