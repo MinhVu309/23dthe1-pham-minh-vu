@@ -7,16 +7,24 @@ import 'package:flutter/material.dart';
 import 'package:pham_minh_vu_23dthe1/core/api_client.dart';
 import 'package:pham_minh_vu_23dthe1/data/models/session.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/auth_repository.dart';
+import 'package:pham_minh_vu_23dthe1/data/repositories/attendance_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/department_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/employee_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/leave_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/location_repository.dart';
+import 'package:pham_minh_vu_23dthe1/data/repositories/qr_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/shift_repository.dart';
 import 'package:pham_minh_vu_23dthe1/features/auth/auth_controller.dart';
+import 'package:pham_minh_vu_23dthe1/services/device_id.dart';
 import 'package:pham_minh_vu_23dthe1/core/theme.dart';
 import 'package:provider/provider.dart';
 
 import 'fakes.dart';
+
+class FixedDeviceId implements DeviceIdProvider {
+  @override
+  Future<String> get() async => 'test-device';
+}
 
 typedef Handler = ResponseBody Function(RequestOptions o);
 
@@ -79,6 +87,9 @@ Future<AuthController> pumpScreen(
       Provider<ShiftRepository>.value(value: ShiftRepository(api)),
       Provider<LocationRepository>.value(value: LocationRepository(api)),
       Provider<LeaveRepository>.value(value: LeaveRepository(api)),
+      Provider<QrRepository>.value(value: QrRepository(api)),
+      Provider<AttendanceRepository>.value(value: AttendanceRepository(api)),
+      Provider<DeviceIdProvider>.value(value: FixedDeviceId()),
     ],
     child: MaterialApp(theme: buildTheme(), home: screen),
   ));

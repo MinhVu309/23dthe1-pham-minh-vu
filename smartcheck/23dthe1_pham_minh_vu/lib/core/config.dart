@@ -20,6 +20,9 @@ class AppConfig {
   static const connectTimeout = Duration(seconds: 30);
   static const receiveTimeout = Duration(seconds: 45);
 
+  /// Màn "Điểm chấm công" lấy QR mới theo chu kỳ này (token sống ~45 s nên luôn còn hạn).
+  static const qrRefresh = Duration(seconds: 30);
+
   /// OTP hết hạn sau 5 phút (khớp backend).
   static const otpValidity = Duration(minutes: 5);
   static const otpResendCooldown = Duration(seconds: 30);

@@ -7,12 +7,15 @@ import 'core/router.dart';
 import 'core/secure_store.dart';
 import 'core/theme.dart';
 import 'data/repositories/auth_repository.dart';
+import 'data/repositories/attendance_repository.dart';
 import 'data/repositories/department_repository.dart';
 import 'data/repositories/employee_repository.dart';
 import 'data/repositories/leave_repository.dart';
 import 'data/repositories/location_repository.dart';
+import 'data/repositories/qr_repository.dart';
 import 'data/repositories/shift_repository.dart';
 import 'features/auth/auth_controller.dart';
+import 'services/device_id.dart';
 import 'services/google_auth_service.dart';
 
 void main() {
@@ -48,6 +51,9 @@ class SmartCheckApp extends StatelessWidget {
         Provider<ShiftRepository>(create: (_) => ShiftRepository(api)),
         Provider<LocationRepository>(create: (_) => LocationRepository(api)),
         Provider<LeaveRepository>(create: (_) => LeaveRepository(api)),
+        Provider<QrRepository>(create: (_) => QrRepository(api)),
+        Provider<AttendanceRepository>(create: (_) => AttendanceRepository(api)),
+        Provider<DeviceIdProvider>(create: (_) => StoredDeviceId()),
       ],
       child: MaterialApp(
         title: 'SmartCheck',
