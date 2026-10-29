@@ -78,6 +78,50 @@ public class AuthController(UserManager<AppUser> users, OtpService otp, JwtServi
         return Ok(new { message = "Nếu tài khoản tồn tại, mã OTP mới đã được gửi" });
     }
 
+    /// <summary>
+    /// Quên mật khẩu, bước 1: gửi mã 6 số tới email. Luôn trả cùng một thông báo dù email có tài khoản hay không,
+    /// để không lộ email nào đã đăng ký. Gửi dồn dập (dưới 1 phút) bị bỏ qua.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+    {
+        var user = await users.FindByEmailAsync(dto.Email);
+        if (user is not null && user.IsActive && !await otp.SentRecentlyAsync(user))
+            await otp.SendAsync(user, OtpPurpose.PasswordReset);
+        return Ok(new { message = "Nếu email có tài khoản, mã đặt lại mật khẩu đã được gửi. Mã có hiệu lực 5 phút." });
+    }
+
+    /// <summary>
+    /// Quên mật khẩu, bước 2: nhập mã + mật khẩu mới. Đúng mã thì đổi mật khẩu, xác minh email và đăng nhập luôn (trả JWT):
+    /// người nhập được mã đã chứng tỏ giữ hộp thư, cùng mức bảo đảm với OTP đăng nhập.
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+    {
+        var user = await users.FindByEmailAsync(dto.Email);
+        if (user is null || !user.IsActive) return Unauthorized(new { message = "Mã không đúng hoặc đã hết hạn" });
+
+        // Kiểm tra luật mật khẩu TRƯỚC khi dùng mã, để nhập mật khẩu yếu không làm mất mã.
+        foreach (var validator in users.PasswordValidators)
+        {
+            var check = await validator.ValidateAsync(users, user, dto.NewPassword);
+            if (!check.Succeeded) return BadRequest(new { errors = check.Errors.Select(e => e.Description) });
+        }
+
+        if (!await otp.VerifyAsync(user, dto.Code, OtpPurpose.PasswordReset))
+            return Unauthorized(new { message = "Mã không đúng hoặc đã hết hạn" });
+
+        var reset = await users.ResetPasswordAsync(user, await users.GeneratePasswordResetTokenAsync(user), dto.NewPassword);
+        if (!reset.Succeeded) return BadRequest(new { errors = reset.Errors.Select(e => e.Description) });
+
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            await users.UpdateAsync(user);
+        }
+        return Ok(await IssueAsync(user));
+    }
+
     /// <summary>Bước 2: nhập OTP → nhận JWT. Role trả về để app điều hướng Admin / Employee.</summary>
     [HttpPost("verify-otp")]
     public async Task<IActionResult> VerifyOtp(VerifyOtpDto dto)

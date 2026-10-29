@@ -43,6 +43,15 @@ Người dùng nhập mã ở `POST /api/auth/verify-otp` thì email được đ
 - Đăng nhập bằng Google, Admin tạo nhân viên và tài khoản mẫu được coi là đã xác minh. Tài khoản đăng ký từ trước chưa xác minh sẽ được xác minh ở lần nhập OTP đăng nhập kế tiếp.
 - App mới chạy được với server cũ (không có cờ `requiresEmailVerification`) và app cũ chạy được với server mới (đăng ký xong quay về đăng nhập, nhận mã xác minh ở lần đăng nhập đầu).
 
+## Quên mật khẩu
+Hai bước, không cần đăng nhập:
+1. `POST /api/auth/forgot-password {email}` gửi mã 6 số tới email (thư "Mã đặt lại mật khẩu SmartCheck"). **Luôn trả cùng một thông báo** dù email có tài khoản hay không, để không lộ email nào đã đăng ký.
+2. `POST /api/auth/reset-password {email, code, newPassword}`: đúng mã thì đổi mật khẩu, đánh dấu email đã xác minh và **trả JWT** (đăng nhập luôn). Sai mã hoặc hết hạn → 401.
+
+Các chốt an toàn: mã sống 5 phút và chỉ thử tối đa 5 lần; yêu cầu gửi lại trong vòng 1 phút bị bỏ qua (chống spam thư và dò mã); luật mật khẩu được kiểm tra **trước** khi dùng mã nên nhập mật khẩu yếu không làm mất mã;
+mã đặt lại và mã OTP đăng nhập băm với muối khác nhau nên không dùng lẫn cho nhau. Tài khoản bị khoá không nhận được mã.
+Không cần cấu hình mới: chỉ cần SMTP hoạt động như với OTP đăng nhập.
+
 ## Dữ liệu mẫu để demo (tắt mặc định)
 Đặt `Seed:Demo` = `true` (trong `appsettings.json`, `appsettings.Production.json` hoặc biến môi trường `Seed__Demo=true`)
 rồi khởi động lại. Lần chạy đầu tạo dữ liệu, các lần sau tự bỏ qua:

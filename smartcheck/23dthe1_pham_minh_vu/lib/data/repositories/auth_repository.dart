@@ -11,6 +11,12 @@ abstract interface class AuthApi {
   Future<void> resendOtp(String userNameOrEmail);
   Future<RegisterResult> register(String email, String password, String fullName);
   Future<Session> googleLogin(String idToken);
+
+  /// Quên mật khẩu, bước 1: server gửi mã 6 số tới email (luôn trả thông báo chung, không lộ email có tài khoản hay không).
+  Future<String> forgotPassword(String email);
+
+  /// Quên mật khẩu, bước 2: đúng mã thì đổi mật khẩu và đăng nhập luôn.
+  Future<Session> resetPassword(String email, String code, String newPassword);
   Future<Profile> me();
 }
 
@@ -50,6 +56,16 @@ class AuthRepository implements AuthApi {
   @override
   Future<Session> googleLogin(String idToken) async =>
       Session.fromJson(_map(await _api.post('/api/auth/google-login', body: {'idToken': idToken})));
+
+  @override
+  Future<String> forgotPassword(String email) async {
+    final r = _map(await _api.post('/api/auth/forgot-password', body: {'email': email}));
+    return (r['message'] ?? 'Nếu email có tài khoản, mã đặt lại mật khẩu đã được gửi.') as String;
+  }
+
+  @override
+  Future<Session> resetPassword(String email, String code, String newPassword) async => Session.fromJson(
+      _map(await _api.post('/api/auth/reset-password', body: {'email': email, 'code': code, 'newPassword': newPassword})));
 
   @override
   Future<Profile> me() async => Profile.fromJson(_map(await _api.get('/api/auth/me')));

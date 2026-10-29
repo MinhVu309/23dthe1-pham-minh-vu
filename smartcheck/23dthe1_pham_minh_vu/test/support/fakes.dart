@@ -40,6 +40,14 @@ class FakeAuthApi implements AuthApi {
   String? lastRegisterEmail;
   ApiException? registerError;
 
+  int forgotCalls = 0;
+  int resetCalls = 0;
+  String? lastForgotEmail;
+  String? lastResetCode;
+  String? lastResetPassword;
+  ApiException? forgotError;
+  ApiException? resetError;
+
   /// `false` mô phỏng server cũ chưa có bước xác minh email khi đăng ký.
   bool requiresVerification = true;
 
@@ -72,6 +80,23 @@ class FakeAuthApi implements AuthApi {
 
   @override
   Future<Session> googleLogin(String idToken) async => sessionFor(role);
+
+  @override
+  Future<String> forgotPassword(String email) async {
+    forgotCalls++;
+    lastForgotEmail = email;
+    if (forgotError != null) throw forgotError!;
+    return 'Nếu email có tài khoản, mã đặt lại mật khẩu đã được gửi. Mã có hiệu lực 5 phút.';
+  }
+
+  @override
+  Future<Session> resetPassword(String email, String code, String newPassword) async {
+    resetCalls++;
+    lastResetCode = code;
+    lastResetPassword = newPassword;
+    if (resetError != null) throw resetError!;
+    return sessionFor(role);
+  }
 
   @override
   Future<Profile> me() async {

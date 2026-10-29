@@ -294,6 +294,165 @@ void main() {
     });
   });
 
+  group('quên mật khẩu', () {
+    Future<void> settle(WidgetTester t) async {
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      await t.pump(const Duration(milliseconds: 400));
+    }
+
+    Future<void> press(WidgetTester t) async {
+      final b = find.byType(BusyButton);
+      await t.ensureVisible(b);
+      await t.tap(b);
+      await settle(t);
+    }
+
+    Future<void> openForgot(WidgetTester t) async {
+      await t.tap(find.text('Quên mật khẩu?'));
+      await settle(t);
+      expect(find.text('Quên mật khẩu'), findsOneWidget);
+    }
+
+    Future<void> sendCode(WidgetTester t, {String email = 'sv@test.local'}) async {
+      await t.enterText(find.byType(TextFormField).at(0), email);
+      await press(t);
+    }
+
+    Future<void> fillReset(WidgetTester t, {String code = '123456', String pw = 'matkhaumoi1', String? confirm}) async {
+      final f = find.byType(TextFormField);
+      await t.enterText(f.at(0), code);
+      await t.enterText(f.at(1), pw);
+      await t.enterText(f.at(2), confirm ?? pw);
+    }
+
+    testWidgets('mở từ màn đăng nhập; email đã gõ ở ô đăng nhập được điền sẵn', (t) async {
+      await _pumpApp(t, FakeAuthApi());
+      await t.enterText(find.byType(TextFormField).at(0), 'da.go@test.local');
+      await openForgot(t);
+      expect(find.text('da.go@test.local'), findsOneWidget);
+    });
+
+    testWidgets('tên đăng nhập (không phải email) thì không điền sẵn', (t) async {
+      await _pumpApp(t, FakeAuthApi());
+      await t.enterText(find.byType(TextFormField).at(0), 'quanly');
+      await openForgot(t);
+      expect(find.text('quanly'), findsNothing);
+    });
+
+    testWidgets('email sai định dạng: báo lỗi và không gọi API', (t) async {
+      final api = FakeAuthApi();
+      await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t, email: 'khong-hop-le');
+      expect(find.text('Email không hợp lệ'), findsOneWidget);
+      expect(api.forgotCalls, 0);
+    });
+
+    testWidgets('gửi mã: sang bước nhập mã, hiện thông báo của server và đếm ngược 5 phút', (t) async {
+      final api = FakeAuthApi();
+      await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t);
+      expect(api.forgotCalls, 1);
+      expect(api.lastForgotEmail, 'sv@test.local');
+      expect(find.textContaining('mã đặt lại mật khẩu đã được gửi'), findsOneWidget);
+      expect(find.text('Mật khẩu mới'), findsOneWidget);
+      expect(find.textContaining('hết hạn sau 05:00'), findsOneWidget);
+    });
+
+    testWidgets('lỗi khi gửi mã hiện thông báo và ở lại bước 1', (t) async {
+      final api = FakeAuthApi()..forgotError = ApiException('Máy chủ lỗi', status: 500);
+      await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t);
+      expect(find.text('Máy chủ lỗi'), findsOneWidget);
+      expect(find.text('Mật khẩu mới'), findsNothing);
+    });
+
+    testWidgets('bước 2 kiểm tra form: thiếu mã, mật khẩu yếu, nhập lại không khớp', (t) async {
+      final api = FakeAuthApi();
+      await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t);
+
+      await fillReset(t, code: '123');
+      await press(t);
+      expect(find.text('Nhập đủ 6 số của mã'), findsOneWidget);
+
+      await fillReset(t, pw: 'abc');
+      await press(t);
+      expect(find.textContaining('Mật khẩu tối thiểu 6 ký tự'), findsOneWidget);
+
+      await fillReset(t, pw: 'matkhaumoi1', confirm: 'matkhauKHAC1');
+      await press(t);
+      expect(find.text('Mật khẩu nhập lại không khớp'), findsOneWidget);
+      expect(api.resetCalls, 0);
+    });
+
+    testWidgets('đúng mã: đổi mật khẩu, đăng nhập luôn và đóng mọi màn quên mật khẩu', (t) async {
+      final api = FakeAuthApi();
+      final auth = await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t);
+      await fillReset(t, code: '654321', pw: 'matkhaumoi1');
+      await press(t);
+
+      expect(api.resetCalls, 1);
+      expect(api.lastResetCode, '654321');
+      expect(api.lastResetPassword, 'matkhaumoi1');
+      expect(auth.status, AuthStatus.signedIn);
+      expect(find.byType(EmployeeHome), findsOneWidget);
+      expect(find.text('Quên mật khẩu'), findsNothing);
+    });
+
+    testWidgets('mã sai: hiện lỗi của server, ở lại màn và chưa đăng nhập', (t) async {
+      final api = FakeAuthApi()..resetError = ApiException('Mã không đúng hoặc đã hết hạn', status: 401);
+      final auth = await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t);
+      await fillReset(t);
+      await press(t);
+      expect(find.text('Mã không đúng hoặc đã hết hạn'), findsOneWidget);
+      expect(find.text('Mật khẩu mới'), findsOneWidget);
+      expect(auth.status, AuthStatus.signedOut);
+    });
+
+    testWidgets('gửi lại mã chỉ mở sau 60 giây (khớp thời gian chặn của server)', (t) async {
+      final api = FakeAuthApi();
+      await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t);
+      expect(find.textContaining('Gửi lại mã sau'), findsOneWidget);
+
+      await _advance(t, const Duration(seconds: 31));
+      expect(find.textContaining('Gửi lại mã sau'), findsOneWidget); // 30 giây của OTP đăng nhập chưa đủ ở đây
+
+      await _advance(t, const Duration(seconds: 30));
+      expect(find.text('Gửi lại mã'), findsOneWidget);
+      await t.ensureVisible(find.text('Gửi lại mã'));
+      await t.tap(find.text('Gửi lại mã'));
+      await t.pump();
+      await t.pump();
+      expect(api.forgotCalls, 2);
+      expect(find.text('Đã gửi lại mã, hãy kiểm tra email.'), findsOneWidget);
+      expect(find.textContaining('Gửi lại mã sau'), findsOneWidget); // đếm lại từ đầu
+    });
+
+    testWidgets('"Đổi email khác" quay về bước 1 và xoá mã đã nhập', (t) async {
+      final api = FakeAuthApi();
+      await _pumpApp(t, api);
+      await openForgot(t);
+      await sendCode(t);
+      await t.enterText(find.byType(TextFormField).at(0), '999999');
+      await t.ensureVisible(find.text('Đổi email khác'));
+      await t.tap(find.text('Đổi email khác'));
+      await settle(t);
+      expect(find.text('Mật khẩu mới'), findsNothing);
+      expect(find.text('Gửi mã xác minh'), findsOneWidget);
+    });
+  });
+
   group('kiểm tra form đăng ký', () {
     test('mật khẩu', () {
       expect(validatePassword(''), isNotNull);

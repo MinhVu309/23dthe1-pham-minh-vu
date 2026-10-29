@@ -15,7 +15,7 @@ API đã deploy (app dùng sẵn địa chỉ này, không cần chạy server):
 
 **Ba chức năng đã chọn:** (e) quét **QR động**, (b) chia sẻ **vị trí**, (a) **khuôn mặt**. **Tính năng mới:** **chống fake GPS**.
 
-- **Đăng nhập 2 bước:** mật khẩu rồi mã OTP gửi qua email (hạn 5 phút, tối đa 5 lần thử); đăng nhập **Google OAuth**; **đăng ký có xác minh email** (nhập mã gửi về hộp thư mới hoàn tất). Phân quyền **Admin / Manager / Employee**.
+- **Đăng nhập 2 bước:** mật khẩu rồi mã OTP gửi qua email (hạn 5 phút, tối đa 5 lần thử); đăng nhập **Google OAuth**; **đăng ký có xác minh email** (nhập mã gửi về hộp thư mới hoàn tất); **quên mật khẩu** (nhận mã qua email rồi đặt mật khẩu mới). Phân quyền **Admin / Manager / Employee**.
 - **CRUD 4 bảng:** nhân viên, phòng ban, ca làm việc và địa điểm (chọn toạ độ trên bản đồ), đơn nghỉ phép (tạo, duyệt, từ chối).
 - **Chấm công:** QR đổi mỗi 30 s, quét bằng camera, kiểm tra vị trí và khuôn mặt, tính đi trễ / về sớm.
 - **Báo cáo:** lịch sử và bảng công tháng, bảng công theo ngày và theo nhân viên, bản đồ chấm công (OpenStreetMap), danh sách cảnh báo gian lận, đặt lại thiết bị.

@@ -8,6 +8,8 @@ public record RegisterDto([Required, EmailAddress] string Email, [Required, MinL
 public record LoginDto([Required] string UserNameOrEmail, [Required] string Password);
 public record VerifyOtpDto([Required] string UserNameOrEmail, [Required] string Code, string? DeviceId);
 public record ResendOtpDto([Required] string UserNameOrEmail);
+public record ForgotPasswordDto([Required] string Email);
+public record ResetPasswordDto([Required] string Email, [Required] string Code, [Required, MinLength(6)] string NewPassword);
 public record GoogleLoginDto([Required] string IdToken, string? DeviceId);
 public record AuthResultDto(string Token, string Role, string UserId, string FullName, string Email);
 

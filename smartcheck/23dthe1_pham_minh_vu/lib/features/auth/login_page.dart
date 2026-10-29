@@ -7,6 +7,7 @@ import '../../core/widgets.dart';
 import '../../services/google_auth_service.dart';
 import 'auth_controller.dart';
 import 'otp_page.dart';
+import 'forgot_password_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -84,6 +85,11 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _openForgotPassword() {
+    final typed = _id.text.trim();
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ForgotPasswordPage(initialEmail: typed.contains('@') ? typed : '')));
+  }
+
   Future<void> _openRegister() async {
     final message = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const RegisterPage()));
     if (message != null && mounted) {
@@ -131,7 +137,11 @@ class _LoginPageState extends State<LoginPage> {
               ),
               validator: (v) => (v == null || v.isEmpty) ? 'Nhập mật khẩu' : null,
             ),
-            const SizedBox(height: 22),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(onPressed: _openForgotPassword, child: const Text('Quên mật khẩu?')),
+            ),
+            const SizedBox(height: 6),
             BusyButton(label: 'Đăng nhập', busy: _busy, onPressed: _submit),
             const SizedBox(height: 20),
             Row(children: [

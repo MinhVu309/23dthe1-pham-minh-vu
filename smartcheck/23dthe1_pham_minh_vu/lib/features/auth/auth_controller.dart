@@ -67,6 +67,11 @@ class AuthController extends ChangeNotifier {
   Future<RegisterResult> register(String email, String password, String fullName) =>
       _api.register(email.trim(), password, fullName.trim());
 
+  Future<String> forgotPassword(String email) => _api.forgotPassword(email.trim());
+
+  Future<void> resetPassword(String email, String code, String newPassword) async =>
+      _setSession(await _api.resetPassword(email.trim(), code.trim(), newPassword));
+
   /// Ném [GoogleNotConfigured], [GoogleCancelled], [GoogleSignInFailed] hoặc [ApiException].
   Future<void> signInWithGoogle() async =>
       _setSession(await _api.googleLogin(await _google.getIdToken()));
