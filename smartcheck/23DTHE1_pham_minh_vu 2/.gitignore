@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+.vs/
+appsettings.Production.json
+publish/
+.DS_Store
+
+# Cấu hình thật (mật khẩu, khoá ký JWT/QR): KHÔNG commit. Sao chép appsettings.example.json thành appsettings.json rồi điền.
+appsettings.json
