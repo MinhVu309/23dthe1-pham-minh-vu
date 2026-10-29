@@ -22,11 +22,13 @@ class _ScanPageState extends State<ScanPage> {
 
   bool _busy = false; // đang xử lý một frame → bỏ qua các frame đến sau
   bool _done = false; // đã đọc được mã
+  bool _disposed = false;
   bool _torch = false;
 
   @override
   void dispose() {
-    _scanner.close();
+    _disposed = true;
+    if (!_busy) _scanner.close(); // đang xử lý khung hình thì đóng sau, xem _onFrame
     _handle.dispose();
     super.dispose();
   }
@@ -41,12 +43,13 @@ class _ScanPageState extends State<ScanPage> {
       final value = codes.map((c) => c.rawValue).whereType<String>().where((v) => v.isNotEmpty).firstOrNull;
       if (value == null || _done || !mounted) return;
       _done = true;
-      await _handle.stopStream();
+      await _handle.release();
       if (mounted) Navigator.of(context).pop(value);
     } catch (_) {
       // Một frame lỗi thì bỏ qua, frame sau thử lại.
     } finally {
       _busy = false;
+      if (_disposed) _scanner.close();
     }
   }
 

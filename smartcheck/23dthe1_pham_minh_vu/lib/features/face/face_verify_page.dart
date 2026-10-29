@@ -33,6 +33,7 @@ class _FaceVerifyPageState extends State<FaceVerifyPage> {
   bool _busy = false;
   bool _finished = false;
   bool _timedOut = false;
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -42,9 +43,10 @@ class _FaceVerifyPageState extends State<FaceVerifyPage> {
 
   @override
   void dispose() {
+    _disposed = true;
     _deadline?.cancel();
     _handle.ready.removeListener(_onCameraReady);
-    _detector.close();
+    if (!_busy) _detector.close(); // đang xử lý khung hình thì đóng sau, xem _onFrame
     _handle.dispose();
     super.dispose();
   }
@@ -90,14 +92,16 @@ class _FaceVerifyPageState extends State<FaceVerifyPage> {
       // Một khung hình lỗi thì bỏ qua.
     } finally {
       _busy = false;
+      if (_disposed) _detector.close();
     }
   }
 
   Future<void> _succeed() async {
     _finished = true;
     _deadline?.cancel();
-    await _handle.stopStream();
+    if (mounted) setState(() {}); // hiện dấu tích
     await Future<void>.delayed(const Duration(milliseconds: 700)); // để người dùng thấy dấu tích
+    await _handle.release(); // đóng hẳn camera trước rồi mới sang màn quét QR
     if (mounted) Navigator.of(context).pop(true);
   }
 

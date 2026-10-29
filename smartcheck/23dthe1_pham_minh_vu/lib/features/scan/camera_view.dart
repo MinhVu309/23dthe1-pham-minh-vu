@@ -23,6 +23,22 @@ class CameraHandle {
     } catch (_) {}
   }
 
+  /// Dừng luồng ảnh và **đợi đóng hẳn** camera. Phải gọi (và `await`) trước khi mở màn khác cũng dùng
+  /// camera: nếu để widget tự dispose thì màn sau mở camera khi màn trước chưa nhả xong → treo hàng chục giây.
+  Future<void> release() async {
+    final c = _controller;
+    _controller = null;
+    ready.value = false; // CameraView thôi vẽ hình xem trước
+    if (c == null) return;
+    await Future<void>.delayed(const Duration(milliseconds: 60)); // chờ một khung hình để bỏ CameraPreview
+    try {
+      if (c.value.isStreamingImages) await c.stopImageStream();
+    } catch (_) {}
+    try {
+      await c.dispose();
+    } catch (_) {}
+  }
+
   /// Trả `true` nếu đổi được (máy không có đèn flash thì `false`).
   Future<bool> setTorch(bool on) async {
     try {
@@ -36,7 +52,7 @@ class CameraHandle {
   void dispose() => ready.dispose();
 }
 
-enum _CamState { checking, denied, deniedForever, starting, ready, failed }
+enum _CamState { checking, denied, deniedForever, starting, ready, released, failed }
 
 /// Xin quyền camera, mở camera theo [lens], phủ kín vùng chứa bằng hình xem trước và gọi [onFrame].
 /// Chỉ vẽ hình xem trước hoặc thông báo lỗi; nút bấm, khung ngắm... do màn cha xếp chồng lên.
@@ -63,16 +79,23 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.handle.ready.addListener(_onHandleChanged);
     _start();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.handle.ready.removeListener(_onHandleChanged);
     widget.handle._controller = null;
     widget.handle.ready.value = false;
-    _camera?.dispose();
+    _camera?.dispose(); // đã dispose qua CameraHandle.release() thì lệnh này không làm gì
     super.dispose();
+  }
+
+  /// Màn cha gọi `release()` → bỏ hình xem trước trước khi controller bị đóng.
+  void _onHandleChanged() {
+    if (!widget.handle.ready.value && _state == _CamState.ready && mounted) setState(() => _state = _CamState.released);
   }
 
   @override
@@ -167,6 +190,8 @@ class _CameraViewState extends State<CameraView> with WidgetsBindingObserver {
         );
       case _CamState.ready:
         return _preview(_camera!);
+      case _CamState.released:
+        return const SizedBox.shrink();
     }
   }
 

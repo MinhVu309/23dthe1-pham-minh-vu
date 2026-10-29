@@ -16,6 +16,9 @@ import 'scan_page.dart';
 
 final _timeFmt = DateFormat('HH:mm:ss dd/MM/yyyy');
 
+/// Nghỉ giữa lúc đóng camera trước (khuôn mặt) và mở camera sau (QR).
+const _cameraSwitchGap = Duration(milliseconds: 400);
+
 /// Vị trí đọc quá lâu thì đọc lại trước khi gửi (QR chỉ sống ~45 s nhưng người dùng có thể đã đi chỗ khác).
 const _maxReadingAge = Duration(seconds: 30);
 
@@ -87,6 +90,9 @@ class _CheckPageState extends State<CheckPage> {
 
     final faceOk = await widget.verifyFace(context);
     if (!faceOk || !mounted) return;
+    // Để phần cứng camera nhả hẳn camera trước rồi mới mở camera sau.
+    await Future<void>.delayed(_cameraSwitchGap);
+    if (!mounted) return;
 
     final qr = await widget.scan(context);
     if (qr == null || !mounted) return;

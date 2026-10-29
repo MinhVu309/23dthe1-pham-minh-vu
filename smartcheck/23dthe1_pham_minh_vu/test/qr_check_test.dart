@@ -134,6 +134,8 @@ void main() {
     Future<void> scan(WidgetTester t) async {
       await t.tap(find.textContaining('Quét mã QR'));
       await _settle(t);
+      await t.pump(const Duration(seconds: 1)); // qua nhịp nghỉ giữa camera khuôn mặt và camera QR
+      await _settle(t);
     }
 
     testWidgets('mở màn hình thì đọc GPS và hiện toạ độ, sai số', (t) async {
@@ -307,6 +309,25 @@ void main() {
       await scan(t);
       expect(order, ['face', 'scan']);
       expect((bodyOf(s.calls('POST', '/api/attendance/check-in').single) as Map)['faceVerified'], true);
+    });
+
+    testWidgets('có nhịp nghỉ giữa camera khuôn mặt và camera QR (tránh hai camera mở chồng nhau)', (t) async {
+      var scans = 0;
+      final s = server()..on('POST', '/api/attendance/check-in', (_) => FakeServer.json(ok()));
+      await pumpScreen(t, s, CheckPage(
+        verifyFace: _faceOk,
+        scan: (_) async {
+          scans++;
+          return 'SC1.1.1.x';
+        },
+      ));
+      await _settle(t);
+      await t.tap(find.textContaining('Quét mã QR'));
+      await t.pump(const Duration(milliseconds: 100));
+      expect(scans, 0); // vừa xong khuôn mặt: chưa được mở camera sau
+      await t.pump(const Duration(milliseconds: 500));
+      await _settle(t);
+      expect(scans, 1);
     });
 
     testWidgets('server báo FACE_REQUIRED / FACE_MISMATCH vẫn hiện đúng thông báo sau khi qua bước khuôn mặt', (t) async {
