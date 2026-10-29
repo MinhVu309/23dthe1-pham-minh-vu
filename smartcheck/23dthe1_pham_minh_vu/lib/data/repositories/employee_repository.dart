@@ -60,4 +60,9 @@ class EmployeeRepository {
   Future<void> delete(String id) async {
     await _api.delete('/api/employees/$id');
   }
+
+  /// Admin: bỏ gắn thiết bị để nhân viên chấm công từ máy mới (máy đầu tiên chấm công sẽ được gắn lại).
+  Future<void> resetDevice(String id) async {
+    await _api.post('/api/employees/$id/reset-device');
+  }
 }

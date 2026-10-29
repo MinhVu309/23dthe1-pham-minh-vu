@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../scan/check_page.dart';
+import '../reports/attendance_history_page.dart';
 import '../shared/home_shell.dart';
 import 'leaves_page.dart';
 
@@ -12,7 +13,7 @@ class EmployeeHome extends StatelessWidget {
         tagline: 'Quét mã QR tại điểm chấm công để vào ca.',
         modules: [
           HomeModule(Icons.qr_code_scanner_rounded, 'Chấm công', 'Quét QR, xác thực vị trí và khuôn mặt', builder: (_) => const CheckPage()),
-          HomeModule(Icons.history_rounded, 'Lịch sử chấm công', 'Vào ra, đi trễ, về sớm'),
+          HomeModule(Icons.history_rounded, 'Lịch sử chấm công', 'Vào ra, đi trễ, về sớm, bảng công tháng', builder: (_) => const AttendanceHistoryPage()),
           HomeModule(Icons.beach_access_outlined, 'Đơn nghỉ phép', 'Tạo và theo dõi đơn của bạn', builder: (_) => const LeavesPage()),
         ],
       );

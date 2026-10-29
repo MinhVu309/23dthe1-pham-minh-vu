@@ -137,6 +137,19 @@ class _EmployeesPageState extends State<EmployeesPage> {
     }
   }
 
+  Future<void> _resetDevice(Employee e) async {
+    final ok = await confirmDialog(
+      context,
+      title: 'Đặt lại thiết bị?',
+      message: '${e.fullName} sẽ chấm công được từ một điện thoại khác. Máy đầu tiên họ chấm công sau đó sẽ được gắn lại cho tài khoản này.',
+      confirmLabel: 'Đặt lại',
+      destructive: false,
+    );
+    if (!ok || !mounted) return;
+    final repo = context.read<EmployeeRepository>();
+    await guard(context, () => repo.resetDevice(e.id), success: 'Đã đặt lại thiết bị của ${e.fullName}');
+  }
+
   Future<void> _delete(Employee e) async {
     final ok = await confirmDialog(
       context,
@@ -194,6 +207,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
             isSelf: _items[i].id == selfId,
             onEdit: () => _openForm(existing: _items[i]),
             onToggle: () => _toggleActive(_items[i]),
+            onResetDevice: () => _resetDevice(_items[i]),
             onDelete: () => _delete(_items[i]),
           );
         },
@@ -271,15 +285,16 @@ class _EmployeesPageState extends State<EmployeesPage> {
   }
 }
 
-enum _Action { edit, toggle, delete }
+enum _Action { edit, resetDevice, toggle, delete }
 
 class _EmployeeTile extends StatelessWidget {
-  const _EmployeeTile({required this.employee, required this.isSelf, required this.onEdit, required this.onToggle, required this.onDelete});
+  const _EmployeeTile({required this.employee, required this.isSelf, required this.onEdit, required this.onToggle, required this.onResetDevice, required this.onDelete});
 
   final Employee employee;
   final bool isSelf;
   final VoidCallback onEdit;
   final VoidCallback onToggle;
+  final VoidCallback onResetDevice;
   final VoidCallback onDelete;
 
   static String _initials(String s) {
@@ -304,11 +319,13 @@ class _EmployeeTile extends StatelessWidget {
         tooltip: 'Tuỳ chọn',
         onSelected: (a) => switch (a) {
           _Action.edit => onEdit(),
+          _Action.resetDevice => onResetDevice(),
           _Action.toggle => onToggle(),
           _Action.delete => onDelete(),
         },
         itemBuilder: (_) => [
           const PopupMenuItem(value: _Action.edit, child: Text('Sửa')),
+          const PopupMenuItem(value: _Action.resetDevice, child: Text('Đặt lại thiết bị')),
           if (!isSelf) PopupMenuItem(value: _Action.toggle, child: Text(e.isActive ? 'Khoá tài khoản' : 'Mở khoá')),
           if (!isSelf) const PopupMenuItem(value: _Action.delete, child: Text('Xoá', style: TextStyle(color: AppColors.danger))),
         ],

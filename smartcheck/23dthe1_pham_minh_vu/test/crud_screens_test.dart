@@ -263,6 +263,30 @@ void main() {
       expect(find.text('Đã khoá'), findsOneWidget);
     });
 
+    testWidgets('đặt lại thiết bị: hỏi xác nhận rồi gọi POST reset-device; huỷ thì không gọi', (t) async {
+      final s = serverWith([employee('b', 'Binh Tran')])..on('POST', '/api/employees/b/reset-device', (_) => FakeServer.empty());
+      await pumpScreen(t, s, const EmployeesPage());
+      await _settle(t);
+
+      await t.tap(find.byTooltip('Tuỳ chọn'));
+      await _settle(t);
+      await t.tap(find.text('Đặt lại thiết bị'));
+      await _settle(t);
+      expect(find.text('Đặt lại thiết bị?'), findsOneWidget);
+      await t.tap(find.widgetWithText(TextButton, 'Huỷ'));
+      await _settle(t);
+      expect(s.calls('POST', '/api/employees/b/reset-device'), isEmpty);
+
+      await t.tap(find.byTooltip('Tuỳ chọn'));
+      await _settle(t);
+      await t.tap(find.text('Đặt lại thiết bị'));
+      await _settle(t);
+      await t.tap(find.widgetWithText(TextButton, 'Đặt lại'));
+      await _settle(t);
+      expect(s.calls('POST', '/api/employees/b/reset-device'), hasLength(1));
+      expect(find.text('Đã đặt lại thiết bị của Binh Tran'), findsOneWidget);
+    });
+
     testWidgets('xoá nhân viên: cảnh báo mất dữ liệu, rồi gọi DELETE và bỏ khỏi danh sách', (t) async {
       final s = serverWith([employee('b', 'Binh Tran')])..on('DELETE', '/api/employees/b', (_) => FakeServer.empty());
       await pumpScreen(t, s, const EmployeesPage());
