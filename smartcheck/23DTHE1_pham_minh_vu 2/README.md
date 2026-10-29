@@ -29,6 +29,11 @@ docker compose up -d && dotnet run   # DB Docker + tự tạo DB, seed admin adm
 
 Biến môi trường dùng dấu `__`, ví dụ `ConnectionStrings__DefaultConnection`.
 
+## Đổi mật khẩu Admin
+Seeder chỉ tạo Admin khi chưa có, nên sửa `Seed:AdminPassword` một mình **không** đổi mật khẩu của Admin đã nằm trong DB.
+Đặt thêm `Seed:SyncAdminPassword` = `true` (trong `appsettings.Production.json` hoặc biến môi trường `Seed__SyncAdminPassword=true`)
+rồi khởi động lại: backend đặt mật khẩu Admin theo `Seed:AdminPassword` (chỉ đổi khi khác, có ghi log cảnh báo). Đổi xong có thể tắt công tắc.
+
 ## Đăng ký và xác minh email
 `POST /api/auth/register` tạo tài khoản **chưa xác minh** (role Employee) và gửi mã 6 số tới email (thư "Mã xác minh email SmartCheck").
 Người dùng nhập mã ở `POST /api/auth/verify-otp` thì email được đánh dấu đã xác minh và nhận JWT (không cần đăng nhập lại).

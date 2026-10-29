@@ -23,6 +23,22 @@ public static class DbSeeder
             if (res.Succeeded) await userMgr.AddToRoleAsync(admin, Roles.Admin);
         }
 
+        // Đổi mật khẩu Admin đã có sẵn trong DB: seeder ở trên chỉ tạo Admin khi chưa có nên sửa Seed:AdminPassword
+        // một mình không đủ. Bật Seed:SyncAdminPassword=true thì mỗi lần khởi động mật khẩu Admin được đặt theo cấu hình
+        // (chỉ đổi khi khác). Đổi xong có thể tắt công tắc.
+        if (cfg.GetValue<bool>("Seed:SyncAdminPassword") && !string.IsNullOrWhiteSpace(cfg["Seed:AdminPassword"]))
+        {
+            var current = await userMgr.FindByEmailAsync(email);
+            var wanted = cfg["Seed:AdminPassword"]!;
+            var log = sp.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
+            if (current is not null && !await userMgr.CheckPasswordAsync(current, wanted))
+            {
+                var reset = await userMgr.ResetPasswordAsync(current, await userMgr.GeneratePasswordResetTokenAsync(current), wanted);
+                if (reset.Succeeded) log.LogWarning("Đã đổi mật khẩu Admin {Email} theo Seed:AdminPassword.", email);
+                else log.LogError("Không đổi được mật khẩu Admin: {Errors}", string.Join("; ", reset.Errors.Select(e => e.Description)));
+            }
+        }
+
         if (!await db.Shifts.AnyAsync())
         {
             var shift = new Shift { Name = "Ca hành chính", StartTime = new(8, 0, 0), EndTime = new(17, 0, 0), LateToleranceMinutes = 10 };
