@@ -10,6 +10,7 @@ import '../../data/repositories/attendance_repository.dart';
 import '../../services/device_id.dart';
 import '../../services/location_service.dart';
 import '../shared/common.dart';
+import '../face/face_verify_page.dart';
 import 'check_failure.dart';
 import 'scan_page.dart';
 
@@ -18,15 +19,18 @@ final _timeFmt = DateFormat('HH:mm:ss dd/MM/yyyy');
 /// Vị trí đọc quá lâu thì đọc lại trước khi gửi (QR chỉ sống ~45 s nhưng người dùng có thể đã đi chỗ khác).
 const _maxReadingAge = Duration(seconds: 30);
 
-/// Chấm công vào/ra: lấy GPS → quét QR → gửi lên server → hiện kết quả.
+/// Chấm công vào/ra: lấy GPS → xác thực khuôn mặt → quét QR → gửi lên server → hiện kết quả.
 ///
-/// App chỉ thu thập: server mới quyết định QR, phạm vi, GPS giả. `faceVerified=true` là giá trị tạm
-/// cho đến giai đoạn E (khuôn mặt).
+/// Khuôn mặt làm trước khi quét QR vì QR chỉ sống ~45 s. App chỉ thu thập: server mới quyết định
+/// QR, phạm vi, GPS giả; `faceVerified` chỉ cho biết đã vượt qua thử thách chớp mắt/quay đầu.
 class CheckPage extends StatefulWidget {
-  const CheckPage({super.key, this.scan = openQrScanner});
+  const CheckPage({super.key, this.scan = openQrScanner, this.verifyFace = openFaceVerification});
 
   /// Mở màn quét QR; test thay bằng hàm trả chuỗi cố định.
   final Future<String?> Function(BuildContext context) scan;
+
+  /// Mở màn xác thực khuôn mặt; `true` khi vượt qua. Test thay bằng hàm trả sẵn kết quả.
+  final Future<bool> Function(BuildContext context) verifyFace;
 
   @override
   State<CheckPage> createState() => _CheckPageState();
@@ -81,6 +85,9 @@ class _CheckPageState extends State<CheckPage> {
     if (reading == null || nowProvider().difference(reading.takenAt) > _maxReadingAge) reading = await _locate();
     if (reading == null || !mounted) return;
 
+    final faceOk = await widget.verifyFace(context);
+    if (!faceOk || !mounted) return;
+
     final qr = await widget.scan(context);
     if (qr == null || !mounted) return;
 
@@ -100,7 +107,7 @@ class _CheckPageState extends State<CheckPage> {
           accuracy: reading.accuracy,
           isMocked: reading.isMocked,
           deviceId: deviceId,
-          faceVerified: true,
+          faceVerified: faceOk,
         ),
       );
       if (mounted) setState(() => _result = result);
@@ -136,6 +143,11 @@ class _CheckPageState extends State<CheckPage> {
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.qr_code_scanner_rounded),
             label: Text(_submitting ? 'Đang gửi...' : 'Quét mã QR để ${_type.label.toLowerCase()}'),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('Các bước: xác định vị trí → xác thực khuôn mặt (chớp mắt hoặc quay đầu) → quét mã QR.',
+                textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.35)),
           ),
           const SizedBox(height: 18),
           if (_result != null) _ResultCard(_result!),
