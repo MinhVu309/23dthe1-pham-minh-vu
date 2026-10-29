@@ -201,17 +201,20 @@ Future<bool> guard(BuildContext context, Future<void> Function() action, {String
 
 /// Hàng chip chọn một giá trị để lọc danh sách.
 class FilterChips<T> extends StatelessWidget {
-  const FilterChips({super.key, required this.options, required this.selected, required this.labelOf, required this.onChanged});
+  const FilterChips({super.key, required this.options, required this.selected, required this.labelOf, required this.onChanged, this.padding = 16});
 
   final List<T> options;
   final T selected;
   final String Function(T) labelOf;
   final ValueChanged<T> onChanged;
 
+  /// Đệm hai bên của hàng chip (cho khớp lề của màn chứa nó).
+  final double padding;
+
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: padding),
         child: Row(
           children: [
             for (final o in options)
@@ -220,7 +223,7 @@ class FilterChips<T> extends StatelessWidget {
                 child: ChoiceChip(
                   label: Text(labelOf(o)),
                   selected: selected == o,
-                  selectedColor: AppColors.ink,
+                  selectedColor: AppColors.sky,
                   labelStyle: TextStyle(color: selected == o ? Colors.white : AppColors.ink, fontWeight: FontWeight.w600),
                   checkmarkColor: Colors.white,
                   onSelected: (_) => onChanged(o),

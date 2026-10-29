@@ -25,15 +25,15 @@ App Flutter (Android là nền tảng chính) gọi API ASP.NET Core **đã depl
 
 ## Ảnh chụp màn hình
 
-Chụp từ máy ảo Android với API thật (đã lược các màn có địa chỉ cá nhân và khuôn mặt).
+Giao diện xanh lá + cam: đầu trang gradient kèm thẻ trạng thái, tờ trắng bo tròn với chip lọc và thẻ chức năng, thanh điều hướng có nút cam giữa. Chụp từ máy ảo Android với API thật (đã lược các màn có địa chỉ cá nhân và khuôn mặt).
 
-| Trang chủ Admin | QR động | Bảng công theo ngày |
+| Trang chủ Nhân viên | Chấm công | Trang chủ Admin |
 |---|---|---|
-| ![](docs/screenshots/01_admin_trang_chu.png) | ![](docs/screenshots/02_diem_cham_cong_qr_dong.png) | ![](docs/screenshots/05_bang_cong_theo_ngay.png) |
+| ![](docs/screenshots/04_trang_chu_nhan_vien.png) | ![](docs/screenshots/03_cham_cong.png) | ![](docs/screenshots/01_admin_trang_chu.png) |
 
-| Bảng công theo tháng | Cảnh báo gian lận | Ca làm việc | Phòng ban |
+| QR động | Bảng công theo ngày | Bảng công theo tháng | Cảnh báo gian lận |
 |---|---|---|---|
-| ![](docs/screenshots/06_bang_cong_theo_thang.png) | ![](docs/screenshots/07_canh_bao_gian_lan.png) | ![](docs/screenshots/08_ca_lam_viec.png) | ![](docs/screenshots/09_phong_ban.png) |
+| ![](docs/screenshots/02_diem_cham_cong_qr_dong.png) | ![](docs/screenshots/05_bang_cong_theo_ngay.png) | ![](docs/screenshots/06_bang_cong_theo_thang.png) | ![](docs/screenshots/07_canh_bao_gian_lan.png) |
 
 ## Cấu hình và cách chạy
 

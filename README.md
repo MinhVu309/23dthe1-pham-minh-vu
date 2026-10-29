@@ -110,9 +110,9 @@ Sau đó chạy app với `--dart-define=BASE_URL=http://<ip-máy>:<cổng>`.
 
 ## Ảnh chụp màn hình
 
-| Trang chủ Admin | QR động | Bảng công theo ngày |
+| Trang chủ Nhân viên | Chấm công | Trang chủ Admin |
 |---|---|---|
-| ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/01_admin_trang_chu.png) | ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/02_diem_cham_cong_qr_dong.png) | ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/05_bang_cong_theo_ngay.png) |
+| ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/04_trang_chu_nhan_vien.png) | ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/03_cham_cong.png) | ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/01_admin_trang_chu.png) |
 
 ## Kiểm thử và tình trạng
 

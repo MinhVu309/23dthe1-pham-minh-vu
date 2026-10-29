@@ -1,29 +1,38 @@
 import 'package:flutter/material.dart';
 
-/// Bảng màu "Mực & hổ phách": xanh mực đậm, điểm nhấn hổ phách, nền giấy ấm.
+/// Bảng màu "Xanh lá & cam": đầu trang xanh lá, nút chính cam, điểm nhấn xanh dương, nền xám xanh rất nhạt.
+/// Tên các màu giữ nguyên từ bảng màu cũ (ink = chữ/nền tối, amber = điểm nhấn) để các màn khác tự đổi theo.
 class AppColors {
   AppColors._();
-  static const ink = Color(0xFF12343B);
-  static const inkSoft = Color(0xFF2D5A61);
-  static const inkFaint = Color(0xFF1C4A52);
-  static const amber = Color(0xFFF2A541);
-  static const amberDark = Color(0xFFB7791F); // chữ/viền hổ phách trên nền sáng
-  static const paper = Color(0xFFF6F1E7);
-  static const paperDeep = Color(0xFFEAE2D1);
-  static const danger = Color(0xFFB83A2E);
-  static const ok = Color(0xFF2E7D5B);
-  static const textMuted = Color(0xFF5E6F72);
+  static const ink = Color(0xFF2A3350); // chữ đậm, nền tối
+  static const inkSoft = Color(0xFF55607F);
+  static const inkFaint = Color(0xFF3A4566);
+  static const brand = Color(0xFF43BB7A); // xanh lá chính
+  static const brandLight = Color(0xFF63CE92);
+  static const brandDark = Color(0xFF2B9C5F);
+  static const amber = Color(0xFFFF7A1A); // cam: nút chính, nút giữa thanh dưới
+  static const amberLight = Color(0xFFFF9A4D);
+  static const amberDark = Color(0xFFE0620A); // chữ/viền cam trên nền sáng
+  static const sky = Color(0xFF14A8F5); // xanh dương
+  static const paper = Color(0xFFF1F3F8);
+  static const paperDeep = Color(0xFFE3E7F0);
+  static const danger = Color(0xFFE5484D);
+  static const ok = Color(0xFF2FB46A);
+  static const textMuted = Color(0xFF6F7992);
+
+  static const brandGradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [brandLight, brand]);
+  static const amberGradient = LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: [amberLight, amber]);
 }
 
 ThemeData buildTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: AppColors.ink,
+    seedColor: AppColors.brand,
     brightness: Brightness.light,
   ).copyWith(
-    primary: AppColors.ink,
+    primary: AppColors.brand,
     onPrimary: Colors.white,
     secondary: AppColors.amber,
-    onSecondary: AppColors.ink,
+    onSecondary: Colors.white,
     surface: AppColors.paper,
     error: AppColors.danger,
   );
@@ -49,13 +58,13 @@ ThemeData buildTheme() {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: border(AppColors.paperDeep),
       enabledBorder: border(AppColors.paperDeep),
-      focusedBorder: border(AppColors.ink, 1.6),
+      focusedBorder: border(AppColors.brand, 1.6),
       errorBorder: border(AppColors.danger),
       focusedErrorBorder: border(AppColors.danger, 1.6),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.ink,
+        backgroundColor: AppColors.brand,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -72,7 +81,7 @@ ThemeData buildTheme() {
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: AppColors.inkSoft),
+      style: TextButton.styleFrom(foregroundColor: AppColors.brandDark),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,

@@ -55,7 +55,14 @@ void main() {
         await t.pump();
         expect(find.byType(type), findsOneWidget);
         expect(find.text(text), findsWidgets);
-        expect(find.text('NV001'), findsOneWidget); // dữ liệu từ /me
+        expect(find.byKey(const Key('nav-fab')), findsOneWidget); // nút cam giữa thanh điều hướng
+
+        // Hồ sơ (dữ liệu từ /me) nằm trong bảng mở bằng mục "Hồ sơ" của thanh điều hướng.
+        await t.tap(find.byTooltip('Hồ sơ'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
+        expect(find.text('NV001'), findsOneWidget);
+        expect(find.text('Chưa đăng ký'), findsOneWidget);
       });
     }
 

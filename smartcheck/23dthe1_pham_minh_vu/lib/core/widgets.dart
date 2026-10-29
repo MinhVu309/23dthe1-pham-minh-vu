@@ -44,6 +44,123 @@ class DialPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
+/// Nền đầu trang: gradient xanh lá với vài dải chéo mờ (dùng cho đăng nhập và trang chủ).
+class HeaderBackdrop extends StatelessWidget {
+  const HeaderBackdrop({super.key});
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+        decoration: BoxDecoration(gradient: AppColors.brandGradient),
+        child: SizedBox.expand(child: CustomPaint(painter: _BandsPainter())),
+      );
+}
+
+class _BandsPainter extends CustomPainter {
+  const _BandsPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.08);
+    // Hai dải chéo rộng từ góc phải xuống, tạo cảm giác chiều sâu nhẹ.
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width * 0.35, 0)
+        ..lineTo(size.width, 0)
+        ..lineTo(size.width, size.height * 0.55)
+        ..close(),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, size.height * 0.15)
+        ..lineTo(size.width * 0.55, 0)
+        ..lineTo(size.width * 0.8, 0)
+        ..lineTo(0, size.height * 0.38)
+        ..close(),
+      paint..color = Colors.white.withValues(alpha: 0.05),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// Nút hành động chính màu cam gradient, có quầng sáng (như nút "Show Ticket" trong mẫu).
+class GradientButton extends StatelessWidget {
+  const GradientButton({super.key, required this.label, required this.onPressed, this.icon, this.busy = false});
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !busy;
+    return Opacity(
+      opacity: enabled || busy ? 1 : 0.55,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppColors.amberGradient,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: AppColors.amber.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 8))],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: enabled ? onPressed : null,
+            child: Container(
+              height: 56,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (busy)
+                    const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
+                  else if (icon != null)
+                    Icon(icon, color: Colors.white),
+                  if (busy || icon != null) const SizedBox(width: 10),
+                  Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.w800))),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Nút vuông bo tròn một biểu tượng (nút xanh lá / xanh dương cạnh nút chính).
+class SquareIconButton extends StatelessWidget {
+  const SquareIconButton({super.key, required this.icon, required this.color, required this.onPressed, this.tooltip});
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip ?? '',
+        child: Opacity(
+          opacity: onPressed == null ? 0.5 : 1,
+          child: Material(
+            color: color,
+            borderRadius: BorderRadius.circular(16),
+            elevation: 0,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onPressed,
+              child: SizedBox(width: 56, height: 56, child: Icon(icon, color: Colors.white)),
+            ),
+          ),
+        ),
+      );
+}
+
 /// Khung các màn đăng nhập/đăng ký: mảng mực phía trên, tờ giấy trượt lên đè.
 class AuthShell extends StatelessWidget {
   const AuthShell({
@@ -62,10 +179,10 @@ class AuthShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink,
+      backgroundColor: AppColors.brand,
       body: Stack(
         children: [
-          const Positioned.fill(child: CustomPaint(painter: DialPainter())),
+          const Positioned.fill(child: HeaderBackdrop()),
           SafeArea(
             bottom: false,
             child: LayoutBuilder(
