@@ -4,6 +4,7 @@ import 'package:pham_minh_vu_23dthe1/data/models/attendance.dart';
 import 'package:pham_minh_vu_23dthe1/data/models/session.dart';
 import 'package:pham_minh_vu_23dthe1/features/manager_qr/qr_display_page.dart';
 import 'package:pham_minh_vu_23dthe1/features/scan/check_page.dart';
+import 'package:pham_minh_vu_23dthe1/services/location_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import 'support/fake_server.dart';
@@ -116,7 +117,7 @@ void main() {
   });
 
   group('Chấm công (nhân viên quét QR)', () {
-    FakeServer server() => FakeServer()..on('GET', '/api/locations', (_) => FakeServer.json(page([location(1, 'Cơ sở 1')])));
+    FakeServer server() => FakeServer();
 
     Map<String, dynamic> ok({String type = 'CheckIn', bool late = false, bool early = false, List<String> flags = const []}) => {
           'id': 5,
@@ -128,55 +129,86 @@ void main() {
           'flags': flags,
         };
 
-    Future<void> fillAndScan(WidgetTester t) async {
-      await t.tap(find.byKey(const Key('pick-location')));
-      await t.pumpAndSettle();
-      await t.tap(find.text('Cơ sở 1').last);
-      await t.pumpAndSettle();
+    Future<void> scan(WidgetTester t) async {
       await t.tap(find.textContaining('Quét mã QR'));
       await _settle(t);
     }
 
-    testWidgets('chưa nhập vị trí: báo lỗi, không mở camera, không gọi API', (t) async {
+    testWidgets('mở màn hình thì đọc GPS và hiện toạ độ, sai số', (t) async {
+      final gpsFake = FakeLocation(reading: gps(lat: 10.80191, lng: 106.71442, accuracy: 7.6));
+      await pumpScreen(t, server(), CheckPage(scan: (_) async => null), location: gpsFake);
+      await _settle(t);
+      expect(gpsFake.reads, 1);
+      expect(find.text('10.80191, 106.71442'), findsOneWidget);
+      expect(find.text('Sai số khoảng 8 m'), findsOneWidget);
+    });
+
+    testWidgets('không lấy được GPS: báo lỗi, không mở camera, Thử lại thì chạy tiếp', (t) async {
       var scans = 0;
-      final s = server();
-      await pumpScreen(t, s, CheckPage(scan: (_) async {
+      final gpsFake = FakeLocation(error: const LocationException(LocationProblem.timeout));
+      await pumpScreen(t, server(), CheckPage(scan: (_) async {
         scans++;
-        return 'SC1.1.1.x';
-      }));
+        return null;
+      }), location: gpsFake);
       await _settle(t);
-      await t.tap(find.textContaining('Quét mã QR'));
-      await t.pump();
-      expect(find.text('Nhập vĩ độ'), findsOneWidget);
-      expect(find.text('Nhập kinh độ'), findsOneWidget);
+      expect(find.byKey(const Key('location-problem')), findsOneWidget);
+      expect(find.textContaining('Chưa lấy được vị trí'), findsOneWidget);
+
+      await scan(t); // vẫn lỗi → không được mở camera
       expect(scans, 0);
-      expect(s.calls('POST', '/api/attendance/check-in'), isEmpty);
+
+      gpsFake.error = null;
+      await t.tap(find.text('Thử lại'));
+      await _settle(t);
+      expect(find.byKey(const Key('location-problem')), findsNothing);
+      await scan(t);
+      expect(scans, 1);
     });
 
-    testWidgets('toạ độ ngoài khoảng cho phép bị chặn ở form', (t) async {
-      final s = server();
-      await pumpScreen(t, s, CheckPage(scan: (_) async => 'x'));
+    testWidgets('GPS tắt: có nút mở cài đặt vị trí', (t) async {
+      final gpsFake = FakeLocation(error: const LocationException(LocationProblem.serviceOff));
+      await pumpScreen(t, server(), CheckPage(scan: (_) async => null), location: gpsFake);
       await _settle(t);
-      await t.enterText(find.widgetWithText(TextFormField, 'Vĩ độ'), '95');
-      await t.enterText(find.widgetWithText(TextFormField, 'Kinh độ'), '106,7');
-      await t.tap(find.textContaining('Quét mã QR'));
+      await t.tap(find.text('Mở cài đặt vị trí'));
       await t.pump();
-      expect(find.textContaining('vĩ độ phải từ'), findsOneWidget);
-      expect(find.textContaining('kinh độ phải'), findsNothing);
+      expect(gpsFake.openedSettingsFor, LocationProblem.serviceOff);
     });
 
-    testWidgets('vào ca thành công: gửi nguyên chuỗi QR cùng vị trí, deviceId; hiện kết quả', (t) async {
-      final s = server()..on('POST', '/api/attendance/check-in', (_) => FakeServer.json(ok()));
-      await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.999.sig'), role: UserRole.employee);
+    testWidgets('từ chối quyền vĩnh viễn: có nút mở cài đặt ứng dụng', (t) async {
+      final gpsFake = FakeLocation(error: const LocationException(LocationProblem.deniedForever));
+      await pumpScreen(t, server(), CheckPage(scan: (_) async => null), location: gpsFake);
       await _settle(t);
-      await fillAndScan(t);
+      await t.tap(find.text('Mở cài đặt ứng dụng'));
+      await t.pump();
+      expect(gpsFake.openedSettingsFor, LocationProblem.deniedForever);
+    });
+
+    testWidgets('từ chối quyền thường: chỉ có Thử lại, không có nút Cài đặt', (t) async {
+      final gpsFake = FakeLocation(error: const LocationException(LocationProblem.denied));
+      await pumpScreen(t, server(), CheckPage(scan: (_) async => null), location: gpsFake);
+      await _settle(t);
+      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.textContaining('Mở cài đặt'), findsNothing);
+    });
+
+    testWidgets('GPS yếu (> 100 m) được báo trước', (t) async {
+      await pumpScreen(t, server(), CheckPage(scan: (_) async => null), location: FakeLocation(reading: gps(accuracy: 180)));
+      await _settle(t);
+      expect(find.textContaining('GPS đang yếu'), findsOneWidget);
+    });
+
+    testWidgets('vào ca thành công: gửi nguyên chuỗi QR, toạ độ/sai số/isMocked từ GPS và deviceId', (t) async {
+      final s = server()..on('POST', '/api/attendance/check-in', (_) => FakeServer.json(ok()));
+      await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.999.sig'), location: FakeLocation(reading: gps(lat: 10.81, lng: 106.72, accuracy: 12.5)));
+      await _settle(t);
+      await scan(t);
 
       final body = bodyOf(s.calls('POST', '/api/attendance/check-in').single) as Map;
       expect(body, {
         'qrToken': 'SC1.1.999.sig',
-        'latitude': 10.8019,
-        'longitude': 106.7144,
-        'accuracy': 10.0,
+        'latitude': 10.81,
+        'longitude': 106.72,
+        'accuracy': 12.5,
         'isMocked': false,
         'deviceId': 'test-device',
         'faceVerified': true,
@@ -187,13 +219,48 @@ void main() {
       expect(find.text('Đúng giờ'), findsOneWidget);
     });
 
+    testWidgets('vị trí còn mới thì không đọc lại trước khi quét', (t) async {
+      final s = server()..on('POST', '/api/attendance/check-in', (_) => FakeServer.json(ok()));
+      final fresh = FakeLocation();
+      await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.1.x'), location: fresh);
+      await _settle(t);
+      await scan(t);
+      expect(fresh.reads, 1);
+    });
+
+    testWidgets('vị trí cũ hơn 30 giây thì đọc lại trước khi quét', (t) async {
+      final s = server()..on('POST', '/api/attendance/check-in', (_) => FakeServer.json(ok()));
+      final stale = FakeLocation(reading: gps(at: DateTime.now().subtract(const Duration(minutes: 2))));
+      await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.1.x'), location: stale);
+      await _settle(t);
+      await scan(t);
+      expect(stale.reads, 2);
+    });
+
+    testWidgets('GPS giả lập: vẫn gửi isMocked=true để server chặn và ghi cảnh báo, kết quả hiện lý do', (t) async {
+      final s = server()
+        ..on('POST', '/api/attendance/check-in', (_) => FakeServer.json({
+              'code': 'FRAUD_SUSPECTED',
+              'message': 'Chấm công bị từ chối',
+              'reasons': ['Thiết bị báo vị trí giả lập (mock location)']
+            }, 403));
+      await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.1.x'), location: FakeLocation(reading: gps(mocked: true)));
+      await _settle(t);
+      expect(find.byKey(const Key('location-mocked')), findsOneWidget);
+      await scan(t);
+
+      expect((bodyOf(s.calls('POST', '/api/attendance/check-in').single) as Map)['isMocked'], true);
+      expect(find.text('Nghi ngờ gian lận'), findsOneWidget);
+      expect(find.textContaining('mock location'), findsOneWidget);
+    });
+
     testWidgets('ra ca gọi /check-out và hiện "Về sớm"', (t) async {
       final s = server()..on('POST', '/api/attendance/check-out', (_) => FakeServer.json(ok(type: 'CheckOut', early: true)));
       await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.1.x'));
       await _settle(t);
       await t.tap(find.text('Ra ca'));
       await t.pump();
-      await fillAndScan(t);
+      await scan(t);
 
       expect(s.calls('POST', '/api/attendance/check-out'), hasLength(1));
       expect(s.calls('POST', '/api/attendance/check-in'), isEmpty);
@@ -205,7 +272,7 @@ void main() {
       final s = server()..on('POST', '/api/attendance/check-in', (_) => FakeServer.json(ok(late: true, flags: ['Trùng toạ độ y hệt với nhân viên khác'])));
       await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.1.x'));
       await _settle(t);
-      await fillAndScan(t);
+      await scan(t);
       expect(find.text('Đi trễ'), findsOneWidget);
       expect(find.text('Trùng toạ độ y hệt với nhân viên khác'), findsOneWidget);
     });
@@ -214,7 +281,7 @@ void main() {
       final s = server();
       await pumpScreen(t, s, CheckPage(scan: (_) async => null));
       await _settle(t);
-      await fillAndScan(t);
+      await scan(t);
       expect(s.calls('POST', '/api/attendance/check-in'), isEmpty);
       expect(find.byKey(const Key('check-success')), findsNothing);
       expect(find.byKey(const Key('check-failure')), findsNothing);
@@ -223,7 +290,7 @@ void main() {
     final cases = <String, (int, Map<String, dynamic>, List<String>)>{
       'Mã QR không dùng được': (400, {'code': 'QR_INVALID', 'message': 'QR đã hết hạn, hãy quét lại'}, ['quét lại mã đang hiển thị']),
       'Ngoài phạm vi chấm công': (400, {'code': 'OUT_OF_RANGE', 'message': 'Bạn cách điểm chấm công 500 m (cho phép 150 m)'}, ['500 m']),
-      'Nghi ngờ gian lận': (403, {'code': 'FRAUD_SUSPECTED', 'message': 'Chấm công bị từ chối', 'reasons': ['Thiết bị báo vị trí giả lập (mock location)']}, ['Thiết bị báo vị trí giả lập']),
+      'Nghi ngờ gian lận': (403, {'code': 'FRAUD_SUSPECTED', 'message': 'Chấm công bị từ chối', 'reasons': ['Chấm công từ thiết bị chưa đăng ký']}, ['thiết bị chưa đăng ký']),
       'Bạn đã chấm công rồi': (409, {'code': 'ALREADY_DONE', 'message': 'Hôm nay bạn đã chấm công vào'}, ['Hôm nay bạn đã chấm công vào']),
       'Chưa chấm công vào': (409, {'code': 'NO_CHECKIN', 'message': 'Chưa chấm công vào'}, ['trước khi ra ca']),
       'Khuôn mặt không khớp': (403, {'code': 'FACE_MISMATCH', 'message': 'Khuôn mặt không khớp'}, ['không trùng với khuôn mặt đã đăng ký']),
@@ -235,7 +302,7 @@ void main() {
         final s = server()..on('POST', '/api/attendance/check-in', (_) => FakeServer.json(body, status));
         await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.1.x'));
         await _settle(t);
-        await fillAndScan(t);
+        await scan(t);
         expect(find.byKey(const Key('check-failure')), findsOneWidget);
         expect(find.text(e.key), findsOneWidget);
         for (final x in expectTexts) {
@@ -251,12 +318,11 @@ void main() {
         ..on('POST', '/api/attendance/check-in', (_) => fail ? FakeServer.json({'code': 'QR_INVALID', 'message': 'QR đã hết hạn, hãy quét lại'}, 400) : FakeServer.json(ok()));
       await pumpScreen(t, s, CheckPage(scan: (_) async => 'SC1.1.1.x'));
       await _settle(t);
-      await fillAndScan(t);
+      await scan(t);
       expect(find.byKey(const Key('check-failure')), findsOneWidget);
 
       fail = false;
-      await t.tap(find.textContaining('Quét mã QR'));
-      await _settle(t);
+      await scan(t);
       expect(find.byKey(const Key('check-failure')), findsNothing);
       expect(find.byKey(const Key('check-success')), findsOneWidget);
     });

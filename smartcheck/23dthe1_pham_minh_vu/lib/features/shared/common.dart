@@ -198,3 +198,35 @@ Future<bool> guard(BuildContext context, Future<void> Function() action, {String
     return false;
   }
 }
+
+/// Hàng chip chọn một giá trị để lọc danh sách.
+class FilterChips<T> extends StatelessWidget {
+  const FilterChips({super.key, required this.options, required this.selected, required this.labelOf, required this.onChanged});
+
+  final List<T> options;
+  final T selected;
+  final String Function(T) labelOf;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            for (final o in options)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(labelOf(o)),
+                  selected: selected == o,
+                  selectedColor: AppColors.ink,
+                  labelStyle: TextStyle(color: selected == o ? Colors.white : AppColors.ink, fontWeight: FontWeight.w600),
+                  checkmarkColor: Colors.white,
+                  onSelected: (_) => onChanged(o),
+                ),
+              ),
+          ],
+        ),
+      );
+}

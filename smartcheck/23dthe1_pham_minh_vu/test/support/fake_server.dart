@@ -10,16 +10,41 @@ import 'package:pham_minh_vu_23dthe1/data/repositories/auth_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/attendance_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/department_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/employee_repository.dart';
+import 'package:pham_minh_vu_23dthe1/data/repositories/fraud_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/leave_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/location_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/qr_repository.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/shift_repository.dart';
 import 'package:pham_minh_vu_23dthe1/features/auth/auth_controller.dart';
 import 'package:pham_minh_vu_23dthe1/services/device_id.dart';
+import 'package:pham_minh_vu_23dthe1/services/location_service.dart';
 import 'package:pham_minh_vu_23dthe1/core/theme.dart';
 import 'package:provider/provider.dart';
 
 import 'fakes.dart';
+
+/// GPS giả cho test: đặt [reading] hoặc [error] rồi đếm số lần được đọc.
+class FakeLocation implements LocationProvider {
+  FakeLocation({LocationReading? reading, this.error}) : reading = reading ?? gps();
+
+  LocationReading reading;
+  LocationException? error;
+  int reads = 0;
+  LocationProblem? openedSettingsFor;
+
+  @override
+  Future<LocationReading> read() async {
+    reads++;
+    if (error != null) throw error!;
+    return reading;
+  }
+
+  @override
+  Future<void> openSettings(LocationProblem problem) async => openedSettingsFor = problem;
+}
+
+LocationReading gps({double lat = 10.8019, double lng = 106.7144, double accuracy = 8, bool mocked = false, DateTime? at}) =>
+    LocationReading(latitude: lat, longitude: lng, accuracy: accuracy, isMocked: mocked, takenAt: at ?? DateTime.now());
 
 class FixedDeviceId implements DeviceIdProvider {
   @override
@@ -67,6 +92,7 @@ Future<AuthController> pumpScreen(
   Widget screen, {
   UserRole role = UserRole.admin,
   String? userId,
+  LocationProvider? location,
 }) async {
   final api = clientFor(server);
   final session = sessionFor(role);
@@ -90,6 +116,8 @@ Future<AuthController> pumpScreen(
       Provider<QrRepository>.value(value: QrRepository(api)),
       Provider<AttendanceRepository>.value(value: AttendanceRepository(api)),
       Provider<DeviceIdProvider>.value(value: FixedDeviceId()),
+      Provider<FraudRepository>.value(value: FraudRepository(api)),
+      Provider<LocationProvider>.value(value: location ?? FakeLocation()),
     ],
     child: MaterialApp(theme: buildTheme(), home: screen),
   ));
@@ -131,3 +159,21 @@ Map<String, dynamic> leave(int id, String who, String status, {String from = '20
     {'id': id, 'userId': 'u-$id', 'userName': who, 'fromDate': from, 'toDate': to, 'reason': reason, 'status': status, 'createdAt': '2026-10-29T03:00:00Z'};
 
 Object? bodyOf(RequestOptions o) => o.data;
+
+Map<String, dynamic> fraud(int id, String reason, {String who = 'Nguyễn Văn A', bool resolved = false, String? detail = 'lat=10.8, lng=106.7, acc=8, device=d1'}) =>
+    {'id': id, 'userId': 'u-$id', 'userName': who, 'reason': reason, 'detail': detail, 'createdAt': '2026-10-29T03:00:00Z', 'resolved': resolved};
+
+Map<String, dynamic> attendance(int id, String who, {String type = 'CheckIn', double lat = 10.8019, double lng = 106.7144, bool late = false, bool early = false}) => {
+      'id': id,
+      'userId': 'u-$id',
+      'userName': who,
+      'type': type,
+      'timestamp': '2026-10-29T01:05:00Z',
+      'latitude': lat,
+      'longitude': lng,
+      'distanceMeters': 12.0,
+      'isLate': late,
+      'isEarlyLeave': early,
+      'faceScore': null,
+      'location': 'Văn phòng chính',
+    };

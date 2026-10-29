@@ -3,22 +3,25 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/clock.dart';
 import '../../core/theme.dart';
 import '../../data/models/attendance.dart';
-import '../../data/models/work_location.dart';
 import '../../data/repositories/attendance_repository.dart';
-import '../../data/repositories/location_repository.dart';
 import '../../services/device_id.dart';
+import '../../services/location_service.dart';
 import '../shared/common.dart';
 import 'check_failure.dart';
 import 'scan_page.dart';
 
 final _timeFmt = DateFormat('HH:mm:ss dd/MM/yyyy');
 
-/// Chấm công vào/ra: nhập vị trí → quét QR → gửi lên server → hiện kết quả.
+/// Vị trí đọc quá lâu thì đọc lại trước khi gửi (QR chỉ sống ~45 s nhưng người dùng có thể đã đi chỗ khác).
+const _maxReadingAge = Duration(seconds: 30);
+
+/// Chấm công vào/ra: lấy GPS → quét QR → gửi lên server → hiện kết quả.
 ///
-/// Vị trí đang nhập tay (tạm thời), `isMocked=false` và `faceVerified=true` là giá trị tạm;
-/// các giai đoạn D (GPS thật, chống fake GPS) và E (khuôn mặt) sẽ thay thế.
+/// App chỉ thu thập: server mới quyết định QR, phạm vi, GPS giả. `faceVerified=true` là giá trị tạm
+/// cho đến giai đoạn E (khuôn mặt).
 class CheckPage extends StatefulWidget {
   const CheckPage({super.key, this.scan = openQrScanner});
 
@@ -30,13 +33,12 @@ class CheckPage extends StatefulWidget {
 }
 
 class _CheckPageState extends State<CheckPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _lat = TextEditingController();
-  final _lng = TextEditingController();
-  final _accuracy = TextEditingController(text: '10');
-
   AttendanceType _type = AttendanceType.checkIn;
-  List<WorkLocation> _locations = const [];
+
+  LocationReading? _reading;
+  LocationException? _problem;
+  bool _locating = false;
+
   bool _submitting = false;
   CheckResult? _result;
   CheckFailure? _failure;
@@ -44,47 +46,40 @@ class _CheckPageState extends State<CheckPage> {
   @override
   void initState() {
     super.initState();
-    _loadLocations();
+    _locate();
   }
 
-  @override
-  void dispose() {
-    _lat.dispose();
-    _lng.dispose();
-    _accuracy.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadLocations() async {
+  /// Đọc GPS và cập nhật thẻ vị trí. Trả `null` nếu không lấy được (lý do nằm ở [_problem]).
+  Future<LocationReading?> _locate() async {
+    final provider = context.read<LocationProvider>();
+    setState(() {
+      _locating = true;
+      _problem = null;
+    });
     try {
-      final list = (await context.read<LocationRepository>().list()).items;
-      if (mounted) setState(() => _locations = list);
-    } on ApiException {
-      // Chỉ để gợi ý toạ độ; không có thì người dùng vẫn nhập tay được.
+      final r = await provider.read();
+      if (mounted) setState(() => _reading = r);
+      return r;
+    } on LocationException catch (e) {
+      if (mounted) {
+        setState(() {
+          _problem = e;
+          _reading = null;
+        });
+      }
+      return null;
+    } finally {
+      if (mounted) setState(() => _locating = false);
     }
   }
 
-  void _useLocation(WorkLocation l) {
-    setState(() {
-      _lat.text = l.latitude.toString();
-      _lng.text = l.longitude.toString();
-    });
-  }
-
-  static double? _num(String s) => double.tryParse(s.trim().replaceAll(',', '.'));
-
-  String? _coord(String? v, double min, double max, String label) {
-    final n = _num(v ?? '');
-    if (n == null) return 'Nhập $label';
-    if (n < min || n > max) return '$label phải từ $min đến $max';
-    return null;
-  }
-
   Future<void> _scanAndSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final lat = _num(_lat.text)!, lng = _num(_lng.text)!, acc = _num(_accuracy.text)!;
     final repo = context.read<AttendanceRepository>();
     final devices = context.read<DeviceIdProvider>();
+
+    var reading = _reading;
+    if (reading == null || nowProvider().difference(reading.takenAt) > _maxReadingAge) reading = await _locate();
+    if (reading == null || !mounted) return;
 
     final qr = await widget.scan(context);
     if (qr == null || !mounted) return;
@@ -100,10 +95,10 @@ class _CheckPageState extends State<CheckPage> {
         _type,
         CheckPayload(
           qrToken: qr,
-          latitude: lat,
-          longitude: lng,
-          accuracy: acc,
-          isMocked: false,
+          latitude: reading.latitude,
+          longitude: reading.longitude,
+          accuracy: reading.accuracy,
+          isMocked: reading.isMocked,
           deviceId: deviceId,
           faceVerified: true,
         ),
@@ -118,6 +113,7 @@ class _CheckPageState extends State<CheckPage> {
 
   @override
   Widget build(BuildContext context) {
+    final busy = _submitting || _locating;
     return Scaffold(
       appBar: AppBar(title: const Text('Chấm công', style: TextStyle(fontWeight: FontWeight.w800))),
       body: ListView(
@@ -135,8 +131,8 @@ class _CheckPageState extends State<CheckPage> {
           _positionCard(),
           const SizedBox(height: 18),
           FilledButton.icon(
-            onPressed: _submitting ? null : _scanAndSubmit,
-            icon: _submitting
+            onPressed: busy ? null : _scanAndSubmit,
+            icon: busy
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.qr_code_scanner_rounded),
             label: Text(_submitting ? 'Đang gửi...' : 'Quét mã QR để ${_type.label.toLowerCase()}'),
@@ -149,68 +145,85 @@ class _CheckPageState extends State<CheckPage> {
     );
   }
 
-  Widget _positionCard() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.paperDeep)),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(children: [
-                Icon(Icons.my_location_rounded, color: AppColors.inkSoft),
-                SizedBox(width: 10),
-                Text('Vị trí của bạn', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.ink)),
-              ]),
-              const SizedBox(height: 4),
-              const Text('Tạm thời nhập tay. Giai đoạn sau app sẽ lấy từ GPS.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-              const SizedBox(height: 12),
-              if (_locations.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: DropdownButtonFormField<WorkLocation>(
-                    key: const Key('pick-location'),
-                    decoration: const InputDecoration(labelText: 'Lấy toạ độ từ địa điểm'),
-                    items: [for (final l in _locations) DropdownMenuItem(value: l, child: Text(l.name, overflow: TextOverflow.ellipsis))],
-                    onChanged: (l) => l == null ? null : _useLocation(l),
-                  ),
-                ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _lat,
-                      decoration: const InputDecoration(labelText: 'Vĩ độ'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                      validator: (v) => _coord(v, -90, 90, 'vĩ độ'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _lng,
-                      decoration: const InputDecoration(labelText: 'Kinh độ'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                      validator: (v) => _coord(v, -180, 180, 'kinh độ'),
-                    ),
-                  ),
-                ],
+  Widget _positionCard() {
+    final r = _reading;
+    final p = _problem;
+    Widget body;
+    if (_locating && r == null) {
+      body = const Row(children: [
+        SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2)),
+        SizedBox(width: 12),
+        Text('Đang xác định vị trí...'),
+      ]);
+    } else if (p != null) {
+      body = Column(
+        key: const Key('location-problem'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(p.message, style: const TextStyle(color: AppColors.danger, height: 1.4)),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, children: [
+            OutlinedButton.icon(onPressed: _locating ? null : _locate, icon: const Icon(Icons.refresh_rounded), label: const Text('Thử lại')),
+            if (p.needsSettings)
+              OutlinedButton.icon(
+                onPressed: () => context.read<LocationProvider>().openSettings(p.problem),
+                icon: const Icon(Icons.settings_outlined),
+                label: Text(p.settingsLabel),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _accuracy,
-                decoration: const InputDecoration(labelText: 'Độ chính xác (m)'),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  final n = _num(v ?? '');
-                  return n == null || n <= 0 ? 'Nhập số lớn hơn 0' : null;
-                },
-              ),
-            ],
-          ),
-        ),
+          ]),
+        ],
       );
+    } else if (r != null) {
+      final weak = r.accuracy > _weakAccuracy;
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(
+              child: Text('${r.latitude.toStringAsFixed(5)}, ${r.longitude.toStringAsFixed(5)}',
+                  key: const Key('location-coords'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.ink)),
+            ),
+            IconButton(tooltip: 'Cập nhật vị trí', onPressed: _locating ? null : _locate, icon: const Icon(Icons.refresh_rounded)),
+          ]),
+          Text('Sai số khoảng ${r.accuracy.round()} m', style: TextStyle(color: weak ? AppColors.amberDark : AppColors.textMuted)),
+          if (weak)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text('GPS đang yếu, hệ thống có thể từ chối. Hãy ra nơi thoáng hơn rồi cập nhật lại.', style: TextStyle(color: AppColors.amberDark, fontSize: 13, height: 1.35)),
+            ),
+          if (r.isMocked)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('Thiết bị đang báo vị trí giả lập. Chấm công sẽ bị từ chối và quản lý nhận được cảnh báo.',
+                  key: Key('location-mocked'), style: TextStyle(color: AppColors.danger, fontSize: 13, height: 1.35)),
+            ),
+        ],
+      );
+    } else {
+      body = const SizedBox.shrink();
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.paperDeep)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Icon(Icons.my_location_rounded, color: AppColors.inkSoft),
+            SizedBox(width: 10),
+            Text('Vị trí của bạn', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.ink)),
+          ]),
+          const SizedBox(height: 10),
+          body,
+        ],
+      ),
+    );
+  }
 }
+
+/// Server từ chối khi sai số lớn hơn mức này (`Fraud:MaxAccuracyMeters`, mặc định 100 m); chỉ để báo trước.
+const _weakAccuracy = 100;
 
 class _ResultCard extends StatelessWidget {
   const _ResultCard(this.r);
