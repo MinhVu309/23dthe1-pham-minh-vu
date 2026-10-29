@@ -71,8 +71,8 @@ class _LoginPageState extends State<LoginPage> {
     });
     try {
       await context.read<AuthController>().signInWithGoogle();
-    } on GoogleNotConfigured {
-      if (mounted) setState(() => _error = 'Đăng nhập Google chưa được cấu hình (thiếu Google client ID).');
+    } on GoogleNotConfigured catch (e) {
+      if (mounted) setState(() => _error = e.message);
     } on GoogleCancelled {
       // người dùng tự đóng hộp thoại, không cần báo lỗi
     } on GoogleSignInFailed catch (e) {

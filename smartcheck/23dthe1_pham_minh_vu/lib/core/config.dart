@@ -16,6 +16,11 @@ class AppConfig {
     defaultValue: '185827252320-ccaml6efko4me8d6nudimasb7kmft1cg.apps.googleusercontent.com',
   );
 
+  /// OAuth *iOS* client ID (tạo trong Google Cloud với bundle id `com.phamminhvu.chamcong`).
+  /// Để trống thì nút Google bị chặn trên iPhone. Khi điền phải thêm cả `GIDClientID` và URL scheme
+  /// (client ID đảo ngược) vào `ios/Runner/Info.plist`, nếu không thư viện Google sẽ làm app sập.
+  static const googleIosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID', defaultValue: '');
+
   // Host miễn phí ngủ khi nhàn rỗi nên request đầu có thể chậm.
   static const connectTimeout = Duration(seconds: 30);
   static const receiveTimeout = Duration(seconds: 45);
