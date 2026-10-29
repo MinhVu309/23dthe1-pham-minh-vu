@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# APK đóng gói để nộp (quá lớn cho git)
+/dist/
