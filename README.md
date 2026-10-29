@@ -82,6 +82,8 @@ flowchart TD
 | Chấm công | `POST /api/attendance/check-in` · `check-out` · `GET /api/attendance/my` · `GET /api/attendance` · `GET /api/attendance/report` |
 | Gian lận | `GET /api/fraud-alerts` · `POST /api/fraud-alerts/{id}/resolve` |
 
+**Thành viên nhóm làm giao diện riêng dùng chung API này: xem [smartcheck/API.md](smartcheck/API.md)** (địa chỉ, cách đăng nhập, quyền, luồng chấm công, mã lỗi).
+
 Danh sách đầy đủ và thử trực tiếp trên [Swagger](https://vupham309-001-site1.etempurl.com/swagger).
 
 ## Công nghệ
