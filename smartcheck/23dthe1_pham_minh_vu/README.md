@@ -68,13 +68,15 @@ Lần đầu mở app cấp quyền **Camera** và **Vị trí**. Host miễn ph
 
 ## Tài khoản mẫu
 
-Mã OTP được gửi về **email của chính tài khoản đó**, nên cần truy cập được hộp thư này khi đăng nhập bằng mật khẩu.
+Mã OTP được gửi về **email của chính tài khoản đó**. Các tài khoản mẫu dưới đây dùng địa chỉ dạng `tên+vai-trò@gmail.com` nên thư OTP đều về **hộp thư `vupham010125@gmail.com`**; cần mở hộp thư này khi đăng nhập.
 
-| Role | Email | Mật khẩu | Ghi chú |
-|---|---|---|---|
-| Admin | `vupham010125@gmail.com` | `<điền khi nộp>` | Đăng nhập được bằng nút Google |
-| Manager | `<điền khi nộp>` | `<điền khi nộp>` | Admin tạo trong màn Nhân viên |
-| Employee | `<điền khi nộp>` | `<điền khi nộp>` | Tự đăng ký hoặc Admin tạo |
+| Role | Email | Mật khẩu |
+|---|---|---|
+| Admin | `vupham010125@gmail.com` | do tác giả cung cấp riêng (không đăng công khai) |
+| Manager | `vupham010125+manager@gmail.com` | `Demo@123456` |
+| Employee | `vupham010125+nv01@gmail.com` … `vupham010125+nv05@gmail.com` | `Demo@123456` |
+
+Các tài khoản Manager/Employee và dữ liệu đi kèm (phòng ban, ca, ~3 tuần lịch sử chấm công, đơn nghỉ, cảnh báo mẫu) **chỉ có khi backend bật `Seed:Demo=true`**, xem [README backend](../23DTHE1_pham_minh_vu%202/README.md). Nhân viên mẫu có mã `DEMO-…`; lịch sử mẫu chỉ gồm các ngày đã qua nên vẫn chấm công thật được trong hôm nay.
 
 Tài khoản đăng nhập bằng Google (khi app còn ở chế độ Testing) chỉ dành cho email đã thêm vào danh sách người dùng thử; email Google mới sẽ vào với role Employee.
 

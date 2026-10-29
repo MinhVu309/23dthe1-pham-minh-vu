@@ -7,7 +7,7 @@ Cần **hai máy Android**: máy A dùng tài khoản **Admin** (hiện QR, qu�
 1. Cài APK lên cả hai máy, cấp quyền **Camera** và **Vị trí**, bật GPS.
 2. Mở app một lần để "đánh thức" host miễn phí (request đầu có thể chậm 10–30 s).
 3. Máy A: đăng nhập Admin → **Địa điểm** → mở "Văn phòng chính" → **chạm bản đồ đúng chỗ đang đứng** → Lưu. Nếu bỏ qua, mọi lần chấm công sẽ báo ngoài phạm vi.
-4. Kiểm tra mail đang nhận được OTP của hai tài khoản (xem README).
+4. Bật dữ liệu mẫu trên backend (`Seed:Demo=true`, xem README backend) để có sẵn tài khoản Manager/Employee và lịch sử cho bảng công, bản đồ, cảnh báo. Kiểm tra hộp thư `vupham010125@gmail.com` đang nhận được OTP (mọi tài khoản mẫu đều gửi OTP về đó).
 5. Nếu máy B từng chấm công bằng máy khác: Admin → **Nhân viên** → ⋮ → **Đặt lại thiết bị**.
 
 ## 1. Đăng nhập 2 bước và 3 role (1,5 phút)

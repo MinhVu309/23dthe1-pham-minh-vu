@@ -34,5 +34,8 @@ public static class DbSeeder
             db.Departments.Add(new Department { Name = "Phòng Kỹ thuật" });
             await db.SaveChangesAsync();
         }
+
+        // Dữ liệu mẫu để demo: mặc định TẮT. Bật bằng Seed:Demo=true (hoặc biến môi trường Seed__Demo=true).
+        if (cfg.GetValue<bool>("Seed:Demo")) await DemoSeeder.SeedAsync(sp, cfg);
     }
 }

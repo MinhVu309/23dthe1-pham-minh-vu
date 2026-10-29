@@ -29,6 +29,24 @@ docker compose up -d && dotnet run   # DB Docker + tự tạo DB, seed admin adm
 
 Biến môi trường dùng dấu `__`, ví dụ `ConnectionStrings__DefaultConnection`.
 
+## Dữ liệu mẫu để demo (tắt mặc định)
+Đặt `Seed:Demo` = `true` (trong `appsettings.json`, `appsettings.Production.json` hoặc biến môi trường `Seed__Demo=true`)
+rồi khởi động lại. Lần chạy đầu tạo dữ liệu, các lần sau tự bỏ qua:
+
+| Loại | Nội dung |
+|---|---|
+| Tài khoản | 1 **Manager** (`manager`) và 5 **Employee** (`nv01` … `nv05`), mã nhân viên `DEMO-…` |
+| Danh mục | 4 phòng ban, 3 ca (hành chính, sáng, chiều), địa điểm "Chi nhánh Quận 1" thêm vào "Văn phòng chính" |
+| Chấm công | ~3 tuần lịch sử các ngày đã qua (có đi trễ, về sớm, toạ độ quanh địa điểm); **không** có lượt của hôm nay để chấm công thật |
+| Khác | 4 đơn nghỉ (chờ duyệt, đã duyệt, từ chối), 3 cảnh báo gian lận ghi "(dữ liệu mẫu)" |
+
+- **Email:** nếu `Seed:AdminEmail` là Gmail thì tài khoản có dạng `tên+manager@gmail.com`, `tên+nv01@gmail.com`…; thư OTP về
+  chính hộp thư của admin. Email khác Gmail thì dạng `manager@{domain}`. Đặt `Seed:DemoEmailBase` để chọn địa chỉ gốc khác.
+- **Mật khẩu chung:** `Demo@123456`, đổi bằng `Seed:DemoPassword`. Chỉ dùng cho demo, **đừng bật trên hệ thống thật**.
+- **Xoá dữ liệu mẫu:** Admin → Nhân viên → xoá từng tài khoản `DEMO-…` (lịch sử, đơn nghỉ, cảnh báo của họ xoá theo).
+  Phòng ban, ca, địa điểm thêm vào thì xoá riêng nếu không cần.
+- Chạy mã ở `Data/DemoSeeder.cs`.
+
 ## Luồng test nhanh trên Swagger
 1. `POST /api/auth/login` (admin) → xem OTP trong log/email → `POST /api/auth/verify-otp` → copy `token` → **Authorize**.
 2. `GET /api/qr/current?locationId=1` → lấy `token` QR.
