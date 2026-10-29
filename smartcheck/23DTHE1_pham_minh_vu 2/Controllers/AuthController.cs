@@ -23,15 +23,38 @@ public class AuthController(UserManager<AppUser> users, OtpService otp, JwtServi
         return new AuthResultDto(jwt.Create(u, roles), roles.FirstOrDefault() ?? Roles.Employee, u.Id, u.FullName, u.Email ?? "");
     }
 
-    /// <summary>Đăng ký tài khoản bằng email (mặc định role Employee).</summary>
+    /// <summary>
+    /// Đăng ký tài khoản bằng email (mặc định role Employee). Tài khoản mới CHƯA xác minh email: server gửi mã 6 số
+    /// tới email, người dùng nhập mã ở <c>verify-otp</c> thì email mới được xác minh và nhận được JWT.
+    /// </summary>
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        var user = new AppUser { UserName = dto.Email, Email = dto.Email, FullName = dto.FullName };
-        var result = await users.CreateAsync(user, dto.Password);
-        if (!result.Succeeded) return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
-        await users.AddToRoleAsync(user, Roles.Employee);
-        return Ok(new { message = "Đăng ký thành công, hãy đăng nhập." });
+        var user = await users.FindByEmailAsync(dto.Email);
+        if (user is null)
+        {
+            user = new AppUser { UserName = dto.Email, Email = dto.Email, FullName = dto.FullName, EmailConfirmed = false };
+            var result = await users.CreateAsync(user, dto.Password);
+            if (!result.Succeeded) return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+            await users.AddToRoleAsync(user, Roles.Employee);
+        }
+        else if (user.EmailConfirmed)
+        {
+            // Cùng dạng lỗi với Identity để app dịch sang tiếng Việt.
+            return BadRequest(new { errors = new[] { $"Email '{dto.Email}' is already taken." } });
+        }
+        else
+        {
+            // Email này đã có người đăng ký nhưng chưa ai xác minh được. Cho đăng ký lại (ghi đè tên và mật khẩu)
+            // để người giữ hộp thư thật không bị kẻ khác chiếm email; ai cũng vẫn phải nhập mã gửi về hộp thư mới vào được.
+            var reset = await users.ResetPasswordAsync(user, await users.GeneratePasswordResetTokenAsync(user), dto.Password);
+            if (!reset.Succeeded) return BadRequest(new { errors = reset.Errors.Select(e => e.Description) });
+            user.FullName = dto.FullName;
+            await users.UpdateAsync(user);
+        }
+
+        await otp.SendAsync(user);
+        return Ok(new { requiresEmailVerification = true, message = "Đã gửi mã xác minh tới email. Nhập mã để hoàn tất đăng ký." });
     }
 
     /// <summary>Bước 1: tên đăng nhập/email + mật khẩu. Đúng thì gửi Email OTP.</summary>
@@ -62,6 +85,13 @@ public class AuthController(UserManager<AppUser> users, OtpService otp, JwtServi
         var user = await FindAsync(dto.UserNameOrEmail);
         if (user is null || !await otp.VerifyAsync(user, dto.Code))
             return Unauthorized(new { message = "OTP sai hoặc hết hạn" });
+
+        // Nhập đúng mã gửi tới hộp thư nghĩa là người dùng giữ hộp thư này: coi như email đã xác minh.
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            await users.UpdateAsync(user);
+        }
         return Ok(await IssueAsync(user));
     }
 

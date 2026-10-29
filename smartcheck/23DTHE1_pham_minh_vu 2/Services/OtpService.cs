@@ -27,8 +27,13 @@ public class OtpService(AppDbContext db, EmailService mail)
         });
         await db.SaveChangesAsync();
 
-        await mail.SendAsync(user.Email!, "Mã OTP đăng nhập SmartCheck",
-            $"Mã OTP của bạn là {code}. Mã có hiệu lực 5 phút, không chia sẻ cho bất kỳ ai.");
+        // Tài khoản chưa xác minh email (vừa đăng ký): mã này dùng để xác minh, không phải để đăng nhập.
+        if (user.EmailConfirmed)
+            await mail.SendAsync(user.Email!, "Mã OTP đăng nhập SmartCheck",
+                $"Mã OTP của bạn là {code}. Mã có hiệu lực 5 phút, không chia sẻ cho bất kỳ ai.");
+        else
+            await mail.SendAsync(user.Email!, "Mã xác minh email SmartCheck",
+                $"Mã xác minh email của bạn là {code}. Nhập mã này trong ứng dụng để hoàn tất đăng ký. Mã có hiệu lực 5 phút, không chia sẻ cho bất kỳ ai.");
     }
 
     public async Task<bool> VerifyAsync(AppUser user, string code)

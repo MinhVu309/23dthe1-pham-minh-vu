@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/widgets.dart';
 import 'auth_controller.dart';
+import 'otp_page.dart';
 
 final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -39,6 +40,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _hide = true;
   bool _busy = false;
   String? _error;
+  String? _info;
 
   @override
   void dispose() {
@@ -55,11 +57,23 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() {
       _busy = true;
       _error = null;
+      _info = null;
     });
     final nav = Navigator.of(context);
+    final email = _email.text.trim();
     try {
-      final message = await context.read<AuthController>().register(_email.text, _password.text, _name.text);
-      nav.pop(message); // màn đăng nhập hiển thị thông báo thành công
+      final result = await context.read<AuthController>().register(_email.text, _password.text, _name.text);
+      if (!result.requiresEmailVerification) {
+        nav.pop(result.message); // server cũ chưa xác minh email: màn đăng nhập hiển thị thông báo thành công
+        return;
+      }
+      // Phải nhập mã gửi về email mới hoàn tất. Nhập đúng thì màn OTP tự đóng mọi màn đăng nhập (đã vào app).
+      await nav.push<void>(MaterialPageRoute(builder: (_) => OtpPage(identifier: email, purpose: OtpPurpose.verifyEmail)));
+      // Chạy tới đây nghĩa là người dùng quay lại giữa chừng. Ở lại để họ sửa email (gõ nhầm) rồi đăng ký lại.
+      if (mounted) {
+        setState(() => _info = 'Email $email chưa được xác minh. Bạn có thể sửa thông tin rồi bấm Đăng ký để nhận mã mới, '
+            'hoặc đăng nhập để nhận mã xác minh.');
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -78,6 +92,7 @@ class _RegisterPageState extends State<RegisterPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_info != null) NoticeBanner(_info!, isError: false),
             if (_error != null) NoticeBanner(_error!),
             TextFormField(
               controller: _name,

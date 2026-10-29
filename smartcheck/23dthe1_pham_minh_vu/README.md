@@ -18,7 +18,7 @@ App Flutter (Android là nền tảng chính) gọi API ASP.NET Core **đã depl
 **Tính năng mới: chống fake GPS** – server từ chối khi cờ vị trí giả lập bật, độ chính xác bằng 0 hoặc > 100 m, máy lạ (mỗi tài khoản gắn với một thiết bị), hoặc di chuyển nhanh phi thực tế. Mọi vi phạm ghi vào bảng cảnh báo để Admin/Manager xử lý.
 
 **Các phần còn lại của đề**
-- Đăng ký, đăng nhập **2 bước** (mật khẩu → mã OTP gửi qua email, hạn 5 phút, tối đa 5 lần thử), đăng nhập **Google (OAuth)**. Điều hướng theo role: Admin / Manager / Employee. Phiên đăng nhập được giữ khi mở lại app (JWT lưu bằng `flutter_secure_storage`).
+- Đăng ký có **xác minh email** (mã 6 số gửi về hộp thư, nhập đúng mới vào app), đăng nhập **2 bước** (mật khẩu → mã OTP gửi qua email, hạn 5 phút, tối đa 5 lần thử), đăng nhập **Google (OAuth)**. Điều hướng theo role: Admin / Manager / Employee. Phiên đăng nhập được giữ khi mở lại app (JWT lưu bằng `flutter_secure_storage`).
 - **CRUD 4 bảng** (có tìm kiếm, phân trang, validate, hỏi xác nhận khi xoá, xử lý lỗi 409): Nhân viên, Phòng ban, Ca làm việc + Địa điểm (chọn toạ độ trên bản đồ, bán kính), Đơn nghỉ phép (nhân viên tạo/sửa/huỷ, Admin/Manager duyệt).
 - Lịch sử chấm công, bảng công tháng, đi trễ/về sớm; bảng công theo ngày/nhân viên cho Admin/Manager; nút **Đặt lại thiết bị**.
 - Màn **Cảnh báo gian lận** và **bản đồ chấm công** cho Admin/Manager.

@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pham_minh_vu_23dthe1/core/api_client.dart';
 import 'package:pham_minh_vu_23dthe1/core/clock.dart';
 import 'package:pham_minh_vu_23dthe1/core/router.dart';
+import 'package:pham_minh_vu_23dthe1/core/widgets.dart' show BusyButton;
+import 'package:pham_minh_vu_23dthe1/data/models/register_result.dart';
 import 'package:pham_minh_vu_23dthe1/data/models/session.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/auth_repository.dart';
 import 'package:pham_minh_vu_23dthe1/features/admin/admin_home.dart';
@@ -162,6 +164,127 @@ void main() {
     await t.pump();
     expect(api.resendCalls, 1);
     expect(find.textContaining('Gửi lại mã sau'), findsOneWidget); // đếm lại từ đầu
+  });
+
+  group('đăng ký có xác minh email', () {
+    Future<void> settle(WidgetTester t) async {
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      await t.pump(const Duration(milliseconds: 400));
+    }
+
+    Future<void> openRegister(WidgetTester t) async {
+      await t.tap(find.text('Đăng ký'));
+      await settle(t);
+      expect(find.text('Tạo tài khoản'), findsOneWidget);
+    }
+
+    Future<void> submit(WidgetTester t) async {
+      final button = find.byType(BusyButton);
+      await t.ensureVisible(button);
+      await t.tap(button);
+      await settle(t);
+    }
+
+    Future<void> fillAndSubmit(WidgetTester t, {String email = 'sv@test.local'}) async {
+      final f = find.byType(TextFormField);
+      await t.enterText(f.at(0), 'Sinh Vien');
+      await t.enterText(f.at(1), email);
+      await t.enterText(f.at(2), 'matkhau1');
+      await t.enterText(f.at(3), 'matkhau1');
+      await submit(t);
+    }
+
+    testWidgets('đăng ký → màn xác minh email → nhập đúng mã → vào app (có gửi đúng email)', (t) async {
+      final api = FakeAuthApi();
+      final auth = await _pumpApp(t, api);
+      await openRegister(t);
+      await fillAndSubmit(t);
+
+      expect(api.registerCalls, 1);
+      expect(find.byType(OtpPage), findsOneWidget);
+      expect(find.text('Xác minh email'), findsOneWidget);
+      expect(find.textContaining('sv@test.local'), findsOneWidget);
+      expect(auth.status, AuthStatus.signedOut); // chưa xác minh thì chưa vào được app
+
+      await t.enterText(_otpField, '654321');
+      await settle(t);
+      expect(api.lastVerifyIdentifier, 'sv@test.local');
+      expect(api.lastCode, '654321');
+      expect(auth.status, AuthStatus.signedIn);
+      expect(find.byType(EmployeeHome), findsOneWidget);
+      expect(find.byType(OtpPage), findsNothing);
+      expect(find.text('Tạo tài khoản'), findsNothing); // mọi màn đăng ký đã đóng
+    });
+
+    testWidgets('server cũ chưa xác minh email: quay về đăng nhập với thông báo như trước', (t) async {
+      final api = FakeAuthApi()..requiresVerification = false;
+      await _pumpApp(t, api);
+      await openRegister(t);
+      await fillAndSubmit(t);
+      expect(find.byType(OtpPage), findsNothing);
+      expect(find.text('Đăng ký thành công, hãy đăng nhập.'), findsOneWidget);
+    });
+
+    testWidgets('mã sai: ở lại màn xác minh và hiện lỗi', (t) async {
+      final api = FakeAuthApi()..verifyError = ApiException('OTP sai hoặc hết hạn', status: 401);
+      final auth = await _pumpApp(t, api);
+      await openRegister(t);
+      await fillAndSubmit(t);
+      await t.enterText(_otpField, '000000');
+      await settle(t);
+      expect(find.text('OTP sai hoặc hết hạn'), findsOneWidget);
+      expect(find.byType(OtpPage), findsOneWidget);
+      expect(auth.status, AuthStatus.signedOut);
+    });
+
+    testWidgets('gửi lại mã xác minh sau 30 giây, có thông báo riêng', (t) async {
+      final api = FakeAuthApi();
+      await _pumpApp(t, api);
+      await openRegister(t);
+      await fillAndSubmit(t);
+      expect(find.textContaining('Gửi lại mã sau'), findsOneWidget);
+      await _advance(t, const Duration(seconds: 31));
+      await t.tap(find.text('Gửi lại mã'));
+      await t.pump();
+      await t.pump();
+      expect(api.resendCalls, 1);
+      expect(find.text('Đã gửi lại mã xác minh, hãy kiểm tra email.'), findsOneWidget);
+    });
+
+    testWidgets('thoát giữa chừng: ở lại màn đăng ký, giữ dữ liệu, sửa email gõ nhầm rồi đăng ký lại', (t) async {
+      final api = FakeAuthApi();
+      await _pumpApp(t, api);
+      await openRegister(t);
+      await fillAndSubmit(t, email: 'sai@test.local');
+
+      await t.tap(find.descendant(of: find.byType(OtpPage), matching: find.byIcon(Icons.arrow_back_rounded)));
+      await settle(t);
+      expect(find.byType(OtpPage), findsNothing);
+      expect(find.text('Tạo tài khoản'), findsOneWidget);
+      expect(find.textContaining('chưa được xác minh'), findsOneWidget);
+      expect(find.text('Sinh Vien'), findsOneWidget); // dữ liệu đã nhập vẫn còn
+
+      await t.enterText(find.byType(TextFormField).at(1), 'dung@test.local');
+      await submit(t);
+      expect(api.registerCalls, 2);
+      expect(api.lastRegisterEmail, 'dung@test.local');
+      expect(find.textContaining('dung@test.local'), findsWidgets);
+      expect(find.byType(OtpPage), findsOneWidget);
+    });
+
+    testWidgets('email đã được dùng: hiện lỗi của server và ở lại màn đăng ký', (t) async {
+      final api = FakeAuthApi()..registerError = ApiException('Email này đã được đăng ký.', status: 400);
+      await _pumpApp(t, api);
+      await openRegister(t);
+      await fillAndSubmit(t);
+      expect(find.text('Email này đã được đăng ký.'), findsOneWidget);
+      expect(find.byType(OtpPage), findsNothing);
+    });
+
+    test('RegisterResult mặc định không yêu cầu xác minh (tương thích server cũ)', () {
+      expect(const RegisterResult(message: 'x').requiresEmailVerification, isFalse);
+    });
   });
 
   group('kiểm tra form đăng ký', () {

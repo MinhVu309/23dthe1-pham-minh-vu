@@ -1,6 +1,7 @@
 import 'package:pham_minh_vu_23dthe1/core/api_client.dart';
 import 'package:pham_minh_vu_23dthe1/core/secure_store.dart';
 import 'package:pham_minh_vu_23dthe1/data/models/profile.dart';
+import 'package:pham_minh_vu_23dthe1/data/models/register_result.dart';
 import 'package:pham_minh_vu_23dthe1/data/models/session.dart';
 import 'package:pham_minh_vu_23dthe1/data/repositories/auth_repository.dart';
 import 'package:pham_minh_vu_23dthe1/services/google_auth_service.dart';
@@ -33,7 +34,14 @@ class FakeAuthApi implements AuthApi {
   ApiException? verifyError;
   int meCalls = 0;
   int resendCalls = 0;
+  int registerCalls = 0;
   String? lastCode;
+  String? lastVerifyIdentifier;
+  String? lastRegisterEmail;
+  ApiException? registerError;
+
+  /// `false` mô phỏng server cũ chưa có bước xác minh email khi đăng ký.
+  bool requiresVerification = true;
 
   @override
   Future<bool> login(String userNameOrEmail, String password) async {
@@ -44,6 +52,7 @@ class FakeAuthApi implements AuthApi {
   @override
   Future<Session> verifyOtp(String userNameOrEmail, String code) async {
     lastCode = code;
+    lastVerifyIdentifier = userNameOrEmail;
     if (verifyError != null) throw verifyError!;
     return sessionFor(role);
   }
@@ -52,7 +61,14 @@ class FakeAuthApi implements AuthApi {
   Future<void> resendOtp(String userNameOrEmail) async => resendCalls++;
 
   @override
-  Future<String> register(String email, String password, String fullName) async => 'Đăng ký thành công, hãy đăng nhập.';
+  Future<RegisterResult> register(String email, String password, String fullName) async {
+    registerCalls++;
+    lastRegisterEmail = email;
+    if (registerError != null) throw registerError!;
+    return requiresVerification
+        ? const RegisterResult(message: 'Đã gửi mã xác minh tới email.', requiresEmailVerification: true)
+        : const RegisterResult(message: 'Đăng ký thành công, hãy đăng nhập.');
+  }
 
   @override
   Future<Session> googleLogin(String idToken) async => sessionFor(role);

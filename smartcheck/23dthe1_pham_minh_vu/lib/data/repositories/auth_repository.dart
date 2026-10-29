@@ -1,5 +1,6 @@
 import '../../core/api_client.dart';
 import '../models/profile.dart';
+import '../models/register_result.dart';
 import '../models/session.dart';
 
 /// Các lời gọi API xác thực. Controller phụ thuộc interface này để dễ test.
@@ -8,7 +9,7 @@ abstract interface class AuthApi {
   Future<bool> login(String userNameOrEmail, String password);
   Future<Session> verifyOtp(String userNameOrEmail, String code);
   Future<void> resendOtp(String userNameOrEmail);
-  Future<String> register(String email, String password, String fullName);
+  Future<RegisterResult> register(String email, String password, String fullName);
   Future<Session> googleLogin(String idToken);
   Future<Profile> me();
 }
@@ -37,10 +38,13 @@ class AuthRepository implements AuthApi {
   }
 
   @override
-  Future<String> register(String email, String password, String fullName) async {
+  Future<RegisterResult> register(String email, String password, String fullName) async {
     final r = _map(await _api.post('/api/auth/register',
         body: {'email': email, 'password': password, 'fullName': fullName}));
-    return (r['message'] ?? 'Đăng ký thành công, hãy đăng nhập.') as String;
+    return RegisterResult(
+      message: (r['message'] ?? 'Đăng ký thành công, hãy đăng nhập.') as String,
+      requiresEmailVerification: r['requiresEmailVerification'] == true,
+    );
   }
 
   @override

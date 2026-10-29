@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/api_client.dart';
 import '../../core/secure_store.dart';
+import '../../data/models/register_result.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../services/google_auth_service.dart';
@@ -63,7 +64,7 @@ class AuthController extends ChangeNotifier {
   Future<void> verifyOtp(String userNameOrEmail, String code) async =>
       _setSession(await _api.verifyOtp(userNameOrEmail.trim(), code.trim()));
 
-  Future<String> register(String email, String password, String fullName) =>
+  Future<RegisterResult> register(String email, String password, String fullName) =>
       _api.register(email.trim(), password, fullName.trim());
 
   /// Ném [GoogleNotConfigured], [GoogleCancelled], [GoogleSignInFailed] hoặc [ApiException].

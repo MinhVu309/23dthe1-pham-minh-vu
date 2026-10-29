@@ -14,6 +14,7 @@ Cần **hai máy Android**: máy A dùng tài khoản **Admin** (hiện QR, qu�
 
 - Máy B: nhập email + mật khẩu → màn nhập **OTP** (đếm ngược, có "gửi lại") → vào trang **Nhân viên**.
 - Máy A: đăng nhập Admin (hoặc nút **Google**) → trang **Quản trị**. Đăng nhập thử Manager để thấy trang quản lý khác.
+- **Đăng ký mới:** màn Đăng nhập → Đăng ký → điền form → app chuyển sang màn **Xác minh email**; mã 6 số gửi về hộp thư vừa nhập, nhập đúng mới vào app. (Gõ nhầm email thì quay lại, sửa rồi đăng ký lại.)
 - Tắt hẳn app rồi mở lại: vẫn còn đăng nhập.
 
 ## 2. QR động (1 phút)

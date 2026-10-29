@@ -16,11 +16,16 @@ String formatCountdown(Duration d) {
   return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
 }
 
+/// Mã OTP dùng để làm gì: đăng nhập bước 2, hoặc xác minh email ngay sau khi đăng ký.
+/// Cùng một API (`verify-otp`); khác nhau ở lời hướng dẫn.
+enum OtpPurpose { login, verifyEmail }
+
 class OtpPage extends StatefulWidget {
-  const OtpPage({super.key, required this.identifier});
+  const OtpPage({super.key, required this.identifier, this.purpose = OtpPurpose.login});
 
   /// Email/tên đăng nhập đã nhập ở bước 1.
   final String identifier;
+  final OtpPurpose purpose;
 
   @override
   State<OtpPage> createState() => _OtpPageState();
@@ -105,7 +110,7 @@ class _OtpPageState extends State<OtpPage> {
       if (!mounted) return;
       setState(() {
         _restartTimers();
-        _info = 'Đã gửi lại mã OTP, hãy kiểm tra email.';
+        _info = widget.purpose == OtpPurpose.verifyEmail ? 'Đã gửi lại mã xác minh, hãy kiểm tra email.' : 'Đã gửi lại mã OTP, hãy kiểm tra email.';
       });
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -119,8 +124,10 @@ class _OtpPageState extends State<OtpPage> {
     final expired = _left <= Duration.zero;
     return AuthShell(
       showBack: true,
-      title: 'Nhập mã OTP',
-      subtitle: 'Mã 6 số đã gửi tới email của tài khoản ${widget.identifier}.',
+      title: widget.purpose == OtpPurpose.verifyEmail ? 'Xác minh email' : 'Nhập mã OTP',
+      subtitle: widget.purpose == OtpPurpose.verifyEmail
+          ? 'Mã 6 số đã gửi tới ${widget.identifier}. Nhập mã để xác minh email và hoàn tất đăng ký.'
+          : 'Mã 6 số đã gửi tới email của tài khoản ${widget.identifier}.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

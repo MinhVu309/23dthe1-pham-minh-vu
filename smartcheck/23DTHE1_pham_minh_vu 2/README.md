@@ -29,6 +29,15 @@ docker compose up -d && dotnet run   # DB Docker + tự tạo DB, seed admin adm
 
 Biến môi trường dùng dấu `__`, ví dụ `ConnectionStrings__DefaultConnection`.
 
+## Đăng ký và xác minh email
+`POST /api/auth/register` tạo tài khoản **chưa xác minh** (role Employee) và gửi mã 6 số tới email (thư "Mã xác minh email SmartCheck").
+Người dùng nhập mã ở `POST /api/auth/verify-otp` thì email được đánh dấu đã xác minh và nhận JWT (không cần đăng nhập lại).
+
+- Email chưa xác minh mà đăng ký lại (ví dụ lần đầu gõ nhầm, hoặc bị người khác đăng ký giùm) thì **ghi đè tên và mật khẩu** rồi gửi mã mới, để chủ hộp thư thật không bị chiếm email. Ai cũng vẫn phải nhập mã gửi về hộp thư mới vào được.
+- Email đã xác minh mà đăng ký lại → 400 "Email … is already taken".
+- Đăng nhập bằng Google, Admin tạo nhân viên và tài khoản mẫu được coi là đã xác minh. Tài khoản đăng ký từ trước chưa xác minh sẽ được xác minh ở lần nhập OTP đăng nhập kế tiếp.
+- App mới chạy được với server cũ (không có cờ `requiresEmailVerification`) và app cũ chạy được với server mới (đăng ký xong quay về đăng nhập, nhận mã xác minh ở lần đăng nhập đầu).
+
 ## Dữ liệu mẫu để demo (tắt mặc định)
 Đặt `Seed:Demo` = `true` (trong `appsettings.json`, `appsettings.Production.json` hoặc biến môi trường `Seed__Demo=true`)
 rồi khởi động lại. Lần chạy đầu tạo dữ liệu, các lần sau tự bỏ qua:
