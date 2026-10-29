@@ -1,7 +1,8 @@
-# Repo này chỉ theo dõi thư mục smartcheck/ (bài SmartCheck).
+# Repo này chỉ theo dõi thư mục smartcheck/ (bài SmartCheck) và README.md giới thiệu ở gốc.
 # Mọi thứ khác nằm ở thư mục cha (bài khác, tài liệu, bản sao lưu) đều bị bỏ qua.
 /*
 !/.gitignore
+!/README.md
 !/smartcheck/
 
 # ---- Hệ điều hành / IDE ----

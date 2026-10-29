@@ -6,8 +6,8 @@ Nhân viên mở app, hệ thống kiểm tra **họ đang ở đúng chỗ** (G
 
 | Thư mục | Nội dung | Tài liệu |
 |---|---|---|
-| [`23dthe1_pham_minh_vu/`](23dthe1_pham_minh_vu) | App **Flutter** (Android là nền tảng chính) | [README app](23dthe1_pham_minh_vu/README.md) · [Kịch bản demo](23dthe1_pham_minh_vu/DEMO.md) |
-| [`23DTHE1_pham_minh_vu 2/`](23DTHE1_pham_minh_vu%202) | **API ASP.NET Core 8** + SQL Server | [README backend](23DTHE1_pham_minh_vu%202/README.md) |
+| [`23dthe1_pham_minh_vu/`](smartcheck/23dthe1_pham_minh_vu) | App **Flutter** (Android là nền tảng chính) | [README app](smartcheck/23dthe1_pham_minh_vu/README.md) · [Kịch bản demo](smartcheck/23dthe1_pham_minh_vu/DEMO.md) |
+| [`23DTHE1_pham_minh_vu 2/`](smartcheck/23DTHE1_pham_minh_vu%202) | **API ASP.NET Core 8** + SQL Server | [README backend](smartcheck/23DTHE1_pham_minh_vu%202/README.md) |
 
 API đã deploy (app dùng sẵn địa chỉ này, không cần chạy server): <https://vupham309-001-site1.etempurl.com> · Swagger: [`/swagger`](https://vupham309-001-site1.etempurl.com/swagger). Host miễn phí "ngủ" khi nhàn rỗi nên request đầu có thể chậm 10–30 giây.
 
@@ -93,15 +93,15 @@ Danh sách đầy đủ và thử trực tiếp trên [Swagger](https://vupham30
 
 **Chỉ chạy app** (dùng API đã deploy):
 ```bash
-cd 23dthe1_pham_minh_vu
+cd smartcheck/23dthe1_pham_minh_vu
 flutter pub get
 flutter run
 ```
-Hoặc cài file APK (`adb install -r <file>.apk`): xem [README app](23dthe1_pham_minh_vu/README.md) để biết cách build và các biến cấu hình (`--dart-define=BASE_URL=...`).
+Hoặc cài file APK (`adb install -r <file>.apk`): xem [README app](smartcheck/23dthe1_pham_minh_vu/README.md) để biết cách build và các biến cấu hình (`--dart-define=BASE_URL=...`).
 
 **Chạy cả backend trên máy** (cần Docker và .NET 8):
 ```bash
-cd "23DTHE1_pham_minh_vu 2"
+cd "smartcheck/23DTHE1_pham_minh_vu 2"
 cp appsettings.example.json appsettings.json     # file thật không nằm trong git
 docker compose up -d                             # SQL Server 2022
 dotnet run                                       # tự tạo DB, seed, mở /swagger
@@ -112,14 +112,14 @@ Sau đó chạy app với `--dart-define=BASE_URL=http://<ip-máy>:<cổng>`.
 
 | Trang chủ Admin | QR động | Bảng công theo ngày |
 |---|---|---|
-| ![](23dthe1_pham_minh_vu/docs/screenshots/01_admin_trang_chu.png) | ![](23dthe1_pham_minh_vu/docs/screenshots/02_diem_cham_cong_qr_dong.png) | ![](23dthe1_pham_minh_vu/docs/screenshots/05_bang_cong_theo_ngay.png) |
+| ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/01_admin_trang_chu.png) | ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/02_diem_cham_cong_qr_dong.png) | ![](smartcheck/23dthe1_pham_minh_vu/docs/screenshots/05_bang_cong_theo_ngay.png) |
 
 ## Kiểm thử và tình trạng
 
 - App có **158 test tự động** (`flutter test`, chạy với máy chủ giả, không cần mạng) và `flutter analyze` không có lỗi.
 - Đã chạy trên Android emulator với API thật; một lượt chấm công thật (QR + GPS) đã ghi nhận được lên server.
 - **Chưa làm:** so khớp vector khuôn mặt với khuôn mặt đã đăng ký (hiện mới có xác thực "người thật"). Đăng nhập Google chưa dùng được trên iOS (chưa có client OAuth iOS).
-- Chi tiết hơn ở phần "Giới hạn đã biết" trong [README app](23dthe1_pham_minh_vu/README.md).
+- Chi tiết hơn ở phần "Giới hạn đã biết" trong [README app](smartcheck/23dthe1_pham_minh_vu/README.md).
 
 ## Bảo mật
 
