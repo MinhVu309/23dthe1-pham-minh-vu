@@ -6,7 +6,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>SmartCheck.Api</RootNamespace>
     <AssemblyName>23DTHE1_pham_minh_vu</AssemblyName>
+    <!-- SmarterASP.NET: các site dùng chung application pool nên phải out-of-process -->
+    <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- File dev (mật khẩu sa mẫu) không được đưa lên host -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />

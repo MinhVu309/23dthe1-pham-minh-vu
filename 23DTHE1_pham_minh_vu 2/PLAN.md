@@ -49,8 +49,14 @@ Packages: `dio`, `provider` (hoặc `flutter_riverpod`), `flutter_secure_storage
 **0. Backend: DB Docker → build → lên mạng (người dùng làm cùng Claude Code).**
 - *DB dev bằng Docker:* `docker compose up -d` (file `docker-compose.yml` ở gốc backend: SQL Server 2022, cổng 1433, user `sa`, mật khẩu `SmartCheck@123`, volume `smartcheck-sql-data`). Chờ `docker compose ps` báo `healthy`. Chuỗi kết nối dev nằm sẵn trong `appsettings.Development.json`: `Server=localhost,1433;Database=SmartCheckDb;User Id=sa;Password=SmartCheck@123;TrustServerCertificate=True;Encrypt=False`. Mac chip Apple Silicon: bật "Use Rosetta" trong Docker Desktop (image chỉ có amd64). Docker chỉ dùng trên máy dev.
 - `dotnet restore && dotnet build`, sửa lỗi biên dịch nếu có (khung viết chưa build được). `dotnet run` → lần đầu tự tạo DB `SmartCheckDb` + seed (role, admin, ca, địa điểm, phòng ban).
-- Điền cấu hình **bản deploy**: `ConnectionStrings__DefaultConnection` trỏ tới SQL Server **trên mạng** (hosting/VPS, không dùng DB Docker trên máy), `Jwt:Key`, `Qr:Secret` (≥32 ký tự), SMTP (Gmail App Password), `Google:ClientId`. Sửa toạ độ địa điểm mẫu. Deploy giống Tuần 6.
-- *Xong khi:* chạy local với DB Docker được; và mở `https://<domain>/swagger`, login admin → OTP → token chạy được trên URL thật.
+- **Deploy: MonsterASP.NET (gói Freehosting, miễn phí, có MSSQL, không cần thẻ, URL dạng `https://<tên>.runasp.net`).** Lý do: bài Tuần 6 của thầy chỉ dùng Conveyor (tunnel từ Visual Studio trên Windows → URL `*.conveyor.cloud`), máy Mac không dùng được và URL chỉ sống khi máy bật; đề yêu cầu API không localhost và cả nhóm chạy được nên cần host luôn sống. Các bước:
+  1. (Người dùng) đăng ký MonsterASP.NET → tạo **website** và tạo **database MSSQL** trong control panel → lấy chuỗi kết nối + bật Remote Access nếu muốn xem DB bằng Azure Data Studio/SSMS.
+  2. Đặt cấu hình trên host (biến môi trường hoặc `appsettings.Production.json`, **không commit**): `ConnectionStrings__DefaultConnection` (chuỗi của DB trên host, không phải DB Docker), `Jwt__Key`, `Qr__Secret` (≥32 ký tự), `Smtp__*` (Gmail App Password), `Google__ClientId`, `Seed__AdminPassword`. Sửa toạ độ địa điểm mẫu.
+  3. `dotnet publish -c Release -o publish` rồi đưa lên host bằng một trong: Web Deploy (publish profile từ control panel), FTP/SFTP hoặc GitHub. Tài liệu: help.monsterasp.net → Deploy.
+  4. Mở `https://<tên>.runasp.net/swagger`, login admin → OTP → token.
+  - **Chưa kiểm chứng:** host free có cho gửi SMTP ra ngoài không và giới hạn tài nguyên. Test gửi OTP ngay sau khi deploy; nếu SMTP bị chặn → đổi sang dịch vụ gửi mail qua HTTP API (hỏi trước khi thêm dependency), tạm thời đọc OTP trong log.
+  - Phương án dự phòng khi dev: tunnel (ngrok/Cloudflare Tunnel) cho API chạy trên máy + DB Docker. Chỉ dùng để test, **không nộp bằng cách này** (máy tắt là API chết).
+- *Xong khi:* chạy local với DB Docker được; và mở `https://<tên>.runasp.net/swagger`, login admin → OTP → token chạy được trên URL thật từ máy khác/4G.
 
 **A. Khung app & đăng nhập.** Tạo project Flutter theo mục 1-2, theme riêng, `ApiClient` (dio + interceptor gắn JWT, bắt 401 → về login). Màn: Đăng nhập → Nhập OTP (đếm ngược, gửi lại) → Đăng ký → Google. Điều hướng theo `role`: Admin → trang quản trị, Manager → dashboard quản lý, Employee → dashboard nhân viên. *Xong khi:* 3 role vào đúng 3 trang trên máy thật gọi API deploy; tắt mở lại app vẫn giữ đăng nhập.
 
@@ -78,12 +84,13 @@ Bắt buộc: **0 → A → B → C** (có app chạy trên API deploy + CRUD + 
 - Cuối mỗi phase tóm tắt: đã làm gì, chạy thế nào, còn tồn đọng.
 
 ## 6. Prompt khởi động
-> Đọc PLAN.md. Bắt đầu Phase 0: trong thư mục backend `23DTHE1_pham_minh_vu` chạy `docker compose up -d` và đợi SQL Server `healthy`, rồi `dotnet restore` và `dotnet build`, sửa mọi lỗi biên dịch (khung này chưa từng được build). Chạy `dotnet run` với DB Docker, thử login admin trên Swagger, rồi cho mình biết cần điền gì vào cấu hình để deploy (DB trên mạng, SMTP, secret). Chưa động vào Flutter. Tóm tắt rồi chờ mình duyệt trước khi sang Phase A.
+> Đọc PLAN.md. Bắt đầu Phase 0: trong thư mục backend `23DTHE1_pham_minh_vu` chạy `docker compose up -d` và đợi SQL Server `healthy`, rồi `dotnet restore` và `dotnet build`, sửa mọi lỗi biên dịch (khung này chưa từng được build). Chạy `dotnet run` với DB Docker, thử login admin trên Swagger, rồi chuẩn bị bản deploy lên MonsterASP.NET theo mục Phase 0: `dotnet publish -c Release`, liệt kê chính xác các biến cấu hình cần điền trên host (DB, SMTP, secret) và hướng dẫn mình từng bước upload; chờ mình đưa chuỗi kết nối DB của host. Chưa động vào Flutter. Tóm tắt rồi chờ mình duyệt trước khi sang Phase A.
 
 ## 7. Checklist nộp bài
 - [ ] Tên project cá nhân (`23dthe1_pham_minh_vu`), UI khác các bạn trong nhóm
 - [ ] `baseUrl` là URL deploy; Swagger mở được; đã đổi `Jwt:Key`, `Qr:Secret`, mật khẩu admin
-- [ ] Bản deploy dùng SQL Server trên mạng (không phải DB Docker trên máy); đã bỏ `appsettings.Development.json` khỏi bản deploy hoặc không dùng mật khẩu `sa` mẫu
+- [ ] Bản deploy (MonsterASP.NET) dùng DB MSSQL trên host (không phải DB Docker trên máy); không upload `appsettings.Development.json` và không dùng mật khẩu `sa` mẫu
+- [ ] Đã test URL deploy từ máy khác/4G và gửi OTP thật qua email
 - [ ] Đủ: đăng ký/đăng nhập + OTP + OAuth, 3 role vào đúng trang, 4 bảng CRUD
 - [ ] Demo được: QR, vị trí, khuôn mặt, chống fake GPS
 - [ ] APK release + README + tài khoản mẫu
