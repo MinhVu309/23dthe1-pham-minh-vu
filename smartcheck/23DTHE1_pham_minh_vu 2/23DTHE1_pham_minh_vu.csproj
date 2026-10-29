@@ -11,6 +11,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Thư mục đầu ra của publish nằm trong project: loại khỏi các glob mặc định, nếu không mỗi lần publish lại chép lồng publish/publish/... -->
+    <Compile Remove="publish/**" />
+    <Content Remove="publish/**" />
+    <EmbeddedResource Remove="publish/**" />
+    <None Remove="publish/**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- File dev (mật khẩu sa mẫu) không được đưa lên host -->
     <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
