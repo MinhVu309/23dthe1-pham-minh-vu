@@ -11,10 +11,13 @@ import '../auth/auth_controller.dart';
 
 /// Một chức năng sẽ có ở các giai đoạn sau (hiện hiển thị mờ).
 class HomeModule {
-  const HomeModule(this.icon, this.title, this.subtitle);
+  const HomeModule(this.icon, this.title, this.subtitle, {this.builder});
   final IconData icon;
   final String title;
   final String subtitle;
+
+  /// Màn hình mở ra khi bấm; `null` nghĩa là chưa làm (hiện mờ "Sắp có").
+  final WidgetBuilder? builder;
 }
 
 /// Khung trang chủ dùng chung cho 3 role: đầu trang mực + thẻ hồ sơ + danh sách chức năng.
@@ -253,35 +256,43 @@ class _ModuleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = module.builder != null;
     return Opacity(
-      opacity: 0.6,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
+      opacity: enabled ? 1 : 0.6,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.paperDeep),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: AppColors.paperDeep, borderRadius: BorderRadius.circular(12)),
-              child: Icon(module.icon, color: AppColors.ink),
+          onTap: enabled ? () => Navigator.of(context).push(MaterialPageRoute(builder: module.builder!)) : null,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.paperDeep)),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(color: AppColors.paperDeep, borderRadius: BorderRadius.circular(12)),
+                  child: Icon(module.icon, color: AppColors.ink),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(module.title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink)),
+                      Text(module.subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                if (enabled)
+                  const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted)
+                else
+                  const Text('Sắp có', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(module.title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink)),
-                  Text(module.subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                ],
-              ),
-            ),
-            const Text('Sắp có', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ],
+          ),
         ),
       ),
     );

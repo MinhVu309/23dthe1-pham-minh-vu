@@ -10,9 +10,11 @@ class AppConfig {
   );
 
   /// OAuth *Web* client ID (cùng giá trị với `Google:ClientId` của backend).
-  /// Để trống thì nút Google báo "chưa cấu hình".
-  static const googleServerClientId =
-      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID', defaultValue: '');
+  /// Client ID không phải bí mật. Để trống thì nút Google báo "chưa cấu hình".
+  static const googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '185827252320-ccaml6efko4me8d6nudimasb7kmft1cg.apps.googleusercontent.com',
+  );
 
   // Host miễn phí ngủ khi nhàn rỗi nên request đầu có thể chậm.
   static const connectTimeout = Duration(seconds: 30);

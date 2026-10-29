@@ -7,6 +7,7 @@ class AppColors {
   static const inkSoft = Color(0xFF2D5A61);
   static const inkFaint = Color(0xFF1C4A52);
   static const amber = Color(0xFFF2A541);
+  static const amberDark = Color(0xFFB7791F); // chữ/viền hổ phách trên nền sáng
   static const paper = Color(0xFFF6F1E7);
   static const paperDeep = Color(0xFFEAE2D1);
   static const danger = Color(0xFFB83A2E);
