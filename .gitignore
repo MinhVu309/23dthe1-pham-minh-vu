@@ -1,40 +1,11 @@
+# Repo này chỉ theo dõi thư mục smartcheck/ (bài SmartCheck).
+# Mọi thứ khác nằm ở thư mục cha (bài khác, tài liệu, bản sao lưu) đều bị bỏ qua.
+/*
+!/.gitignore
+!/smartcheck/
+
 # ---- Hệ điều hành / IDE ----
 .DS_Store
 .idea/
 .vscode/
 *.iml
-
-# ---- Bí mật và dữ liệu cục bộ: KHÔNG commit ----
-# appsettings.json chứa mật khẩu SQL Server và JWT secret -> dùng appsettings.example.json làm mẫu
-23DTHE1_pham_minh_vu/appsettings.json
-.env
-**/.env
-# bản sao lưu CSDL (chứa dữ liệu người dùng)
-backups/
-*.bak
-
-# ---- Ảnh người dùng upload (giữ lại thư mục bằng .gitkeep) ----
-23DTHE1_pham_minh_vu/wwwroot/uploads/*
-!23DTHE1_pham_minh_vu/wwwroot/uploads/.gitkeep
-
-# ---- Backend (.NET) ----
-bin/
-obj/
-*.user
-
-# ---- Flutter ----
-.dart_tool/
-build/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-local.properties
-.gradle/
-Pods/
-xcuserdata/
-*.log
-
-# ---- Đề bài (tệp Word) ----
-*.docx
