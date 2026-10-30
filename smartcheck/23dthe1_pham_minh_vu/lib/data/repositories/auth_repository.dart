@@ -19,6 +19,9 @@ abstract interface class AuthApi {
   Future<Session> resetPassword(String email, String code, String newPassword);
   Future<Profile> me();
 
+  /// Tự sửa họ tên và số điện thoại (`null`/rỗng = xoá số). Trả hồ sơ sau khi lưu.
+  Future<Profile> updateProfile(String fullName, String? phoneNumber);
+
   /// Đã đăng nhập: xin token đăng nhập sinh trắc gắn với thiết bị này. Trả `(token, hạn dùng)`.
   Future<({String token, DateTime expiresAt})> biometricEnroll(String deviceId);
 
@@ -78,6 +81,10 @@ class AuthRepository implements AuthApi {
 
   @override
   Future<Profile> me() async => Profile.fromJson(_map(await _api.get('/api/auth/me')));
+
+  @override
+  Future<Profile> updateProfile(String fullName, String? phoneNumber) async => Profile.fromJson(
+      _map(await _api.put('/api/auth/me', body: {'fullName': fullName, 'phoneNumber': phoneNumber})));
 
   @override
   Future<({String token, DateTime expiresAt})> biometricEnroll(String deviceId) async {

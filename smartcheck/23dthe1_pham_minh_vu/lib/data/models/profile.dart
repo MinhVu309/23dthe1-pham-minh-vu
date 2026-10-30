@@ -7,6 +7,7 @@ class Profile {
     required this.fullName,
     required this.email,
     required this.role,
+    this.phoneNumber,
     this.employeeCode,
     this.departmentId,
     this.hasFace = false,
@@ -17,6 +18,7 @@ class Profile {
   final String fullName;
   final String email;
   final UserRole role;
+  final String? phoneNumber;
   final String? employeeCode;
   final int? departmentId;
   final bool hasFace;
@@ -27,6 +29,7 @@ class Profile {
         fullName: (j['fullName'] ?? '') as String,
         email: (j['email'] ?? '') as String,
         role: UserRole.parse(j['role'] as String?),
+        phoneNumber: j['phoneNumber'] as String?,
         employeeCode: j['employeeCode'] as String?,
         departmentId: j['departmentId'] as int?,
         hasFace: j['hasFace'] == true,

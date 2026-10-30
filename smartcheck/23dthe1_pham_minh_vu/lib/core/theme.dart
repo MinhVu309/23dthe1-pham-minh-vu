@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'settings.dart';
+
 /// Bảng màu "Xanh lá & cam": đầu trang xanh lá, nút chính cam, điểm nhấn xanh dương, nền xám xanh rất nhạt.
 /// Tên các màu giữ nguyên từ bảng màu cũ (ink = chữ/nền tối, amber = điểm nhấn) để các màn khác tự đổi theo.
 class AppColors {
@@ -24,7 +26,9 @@ class AppColors {
   static const amberGradient = LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: [amberLight, amber]);
 }
 
-ThemeData buildTheme() {
+/// [background] là màu nền người dùng chọn trong Cài đặt: nền các trang ([ThemeData.scaffoldBackgroundColor])
+/// và tờ bo tròn ở trang chủ ([ColorScheme.surfaceContainerLowest]).
+ThemeData buildTheme({AppBackground background = AppBackground.fog}) {
   final scheme = ColorScheme.fromSeed(
     seedColor: AppColors.brand,
     brightness: Brightness.light,
@@ -33,7 +37,8 @@ ThemeData buildTheme() {
     onPrimary: Colors.white,
     secondary: AppColors.amber,
     onSecondary: Colors.white,
-    surface: AppColors.paper,
+    surface: background.page,
+    surfaceContainerLowest: background.sheet,
     error: AppColors.danger,
   );
 
@@ -45,9 +50,9 @@ ThemeData buildTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: AppColors.paper,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.paper,
+    scaffoldBackgroundColor: background.page,
+    appBarTheme: AppBarTheme(
+      backgroundColor: background.page,
       foregroundColor: AppColors.ink,
       elevation: 0,
       scrolledUnderElevation: 0,

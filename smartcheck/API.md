@@ -30,7 +30,8 @@ Kết quả đăng nhập thành công là `{ token, role, userId, fullName, ema
 | **Bật vân tay/khuôn mặt** | (đã đăng nhập) `POST /api/auth/biometric/enroll {deviceId}` → `{ token, expiresAt }` (token gắn với thiết bị, sống 30 ngày; gọi lại thì token cũ của thiết bị đó bị thu hồi) |
 | **Đăng nhập bằng vân tay/khuôn mặt** | `POST /api/auth/biometric/login {deviceId, token}` → như `verify-otp` (nhận JWT). Sai/hết hạn/bị thu hồi/khác thiết bị → 401 `BIOMETRIC_INVALID`, quay về mật khẩu + OTP. App chỉ gọi sau khi vân tay/khuôn mặt của máy đã khớp |
 | Tắt vân tay/khuôn mặt | (đã đăng nhập) `POST /api/auth/biometric/revoke {deviceId}` → 204. Đổi mật khẩu bằng "quên mật khẩu" cũng thu hồi mọi token sinh trắc của tài khoản |
-| Hồ sơ của mình | `GET /api/auth/me` → `{ id, fullName, email, employeeCode, departmentId, role, hasFace, deviceBound }` |
+| Hồ sơ của mình | `GET /api/auth/me` → `{ id, fullName, email, phoneNumber, employeeCode, departmentId, role, hasFace, deviceBound }` |
+| Sửa hồ sơ của mình | `PUT /api/auth/me {fullName, phoneNumber}` → hồ sơ mới (như `GET /me`). `fullName` 2–100 ký tự; `phoneNumber` để trống/`null` = xoá, nếu có thì 9–15 chữ số (có thể bắt đầu bằng `+`). Email, mã nhân viên, phòng ban chỉ Admin đổi được |
 
 Mã OTP sống **5 phút**, thử tối đa **5 lần**; yêu cầu gửi mã quên mật khẩu lại trong vòng 1 phút bị bỏ qua. Mật khẩu: tối thiểu 6 ký tự, có chữ thường và chữ số (luật của server; không bắt buộc chữ hoa hay ký tự đặc biệt).
 

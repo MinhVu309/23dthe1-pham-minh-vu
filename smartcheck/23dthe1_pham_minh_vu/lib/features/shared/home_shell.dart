@@ -8,6 +8,7 @@ import '../../data/models/profile.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../auth/auth_controller.dart';
+import '../settings/settings_page.dart';
 import 'common.dart';
 
 /// Một chức năng của trang chủ. `builder == null` nghĩa là chưa làm (hiện mờ "Sắp có").
@@ -108,9 +109,10 @@ class _HomeShellState extends State<HomeShell> {
     showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
+      isScrollControlled: true, // cao hơn mặc định khi có nhiều dòng hoặc chữ lớn; cuộn được nếu vẫn thiếu chỗ
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (ctx) => Padding(
+      builder: (ctx) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -132,6 +134,17 @@ class _HomeShellState extends State<HomeShell> {
             const SizedBox(height: 18),
             _ProfileInfo(session: session, profile: _profile, loading: _loading, error: _error, onRetry: _load),
             const SizedBox(height: 18),
+            FilledButton.icon(
+              key: const Key('open-settings'),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
+                if (mounted) _load(); // hồ sơ có thể vừa được sửa
+              },
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Cài đặt'),
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () {
                 Navigator.pop(ctx);
@@ -157,7 +170,6 @@ class _HomeShellState extends State<HomeShell> {
     final visible = widget.modules.where((m) => _group == null || m.group == _group).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
       body: Stack(
         children: [
           const Positioned.fill(child: HeaderBackdrop()),
@@ -200,7 +212,7 @@ class _HomeShellState extends State<HomeShell> {
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerLowest, borderRadius: const BorderRadius.vertical(top: Radius.circular(32))),
                   child: RefreshIndicator(
                     color: AppColors.brand,
                     onRefresh: _onRefresh,
@@ -423,6 +435,7 @@ class _ProfileInfo extends StatelessWidget {
     final p = profile!;
     return Column(children: [
       _row(Icons.mail_outline_rounded, 'Email', p.email),
+      _row(Icons.phone_outlined, 'Số điện thoại', p.phoneNumber ?? 'Chưa có'),
       _row(Icons.confirmation_number_outlined, 'Mã nhân viên', p.employeeCode ?? 'Chưa có'),
       _row(Icons.face_retouching_natural_outlined, 'Khuôn mặt', p.hasFace ? 'Đã đăng ký' : 'Chưa đăng ký'),
       _row(Icons.phone_android_rounded, 'Thiết bị', p.deviceBound ? 'Đã gắn với máy này' : 'Chưa gắn thiết bị'),

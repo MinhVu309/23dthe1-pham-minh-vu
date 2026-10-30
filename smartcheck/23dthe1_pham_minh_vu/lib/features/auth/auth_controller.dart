@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/api_client.dart';
 import '../../core/secure_store.dart';
+import '../../data/models/profile.dart';
 import '../../data/models/register_result.dart';
 import '../../data/models/session.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -102,7 +103,20 @@ class AuthController extends ChangeNotifier {
   Future<void> signInWithGoogle() async =>
       _setSession(await _api.googleLogin(await _google.getIdToken()));
 
+  /// Lưu họ tên/số điện thoại mới. Họ tên cũng được cập nhật vào phiên đang dùng nên lời chào ở trang chủ đổi theo ngay.
+  Future<Profile> updateProfile(String fullName, String? phoneNumber) async {
+    final p = await _api.updateProfile(fullName.trim(), phoneNumber?.trim());
+    final s = _session;
+    if (s != null) {
+      await _setSession(Session(token: s.token, role: s.role, userId: s.userId, fullName: p.fullName, email: s.email));
+    }
+    return p;
+  }
+
   // ---------- Đăng nhập sinh trắc học ----------
+
+  /// Máy có dùng được vân tay/khuôn mặt không (cho công tắc trong Cài đặt). Null nếu app không cấu hình sinh trắc.
+  Future<BiometricSupport?> biometricSupport() async => _bio?.support();
 
   /// Màn đăng nhập hỏi: máy này đã bật vân tay/khuôn mặt cho ai? Null thì không hiện nút.
   Future<BiometricOption?> biometricOption() async {

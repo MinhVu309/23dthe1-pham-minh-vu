@@ -107,6 +107,17 @@ class FakeAuthApi implements AuthApi {
     return Profile(id: 'u', fullName: 'Tên thử', email: 'x@test.local', role: role, employeeCode: 'NV001');
   }
 
+  Profile? savedProfile;
+  ApiException? updateError;
+  int updateCalls = 0;
+
+  @override
+  Future<Profile> updateProfile(String fullName, String? phoneNumber) async {
+    updateCalls++;
+    if (updateError != null) throw updateError!;
+    return savedProfile = Profile(id: 'u', fullName: fullName, email: 'x@test.local', role: role, phoneNumber: phoneNumber, employeeCode: 'NV001');
+  }
+
   int enrollCalls = 0;
   int revokeCalls = 0;
   String? lastBiometricDevice;

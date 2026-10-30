@@ -224,9 +224,9 @@ class AuthShell extends StatelessWidget {
                         width: double.infinity,
                         constraints: BoxConstraints(minHeight: box.maxHeight - 190),
                         padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-                        decoration: const BoxDecoration(
-                          color: AppColors.paper,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                         ),
                         child: child,
                       ),

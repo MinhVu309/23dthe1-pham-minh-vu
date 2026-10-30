@@ -107,7 +107,7 @@ Future<bool> showFormSheet(BuildContext context, {required WidgetBuilder builder
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: AppColors.paper,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
     builder: (ctx) => Padding(
       padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),

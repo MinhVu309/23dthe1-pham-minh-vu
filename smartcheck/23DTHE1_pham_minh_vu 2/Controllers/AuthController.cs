@@ -198,13 +198,31 @@ public class AuthController(UserManager<AppUser> users, OtpService otp, JwtServi
         return NoContent();
     }
 
+    private async Task<object> ProfileOf(AppUser user)
+    {
+        var roles = await users.GetRolesAsync(user);
+        return new { user.Id, user.FullName, user.Email, user.PhoneNumber, user.EmployeeCode, user.DepartmentId,
+            role = roles.FirstOrDefault(), hasFace = user.FaceEmbeddingJson != null, deviceBound = user.DeviceId != null };
+    }
+
     [Authorize, HttpGet("me")]
     public async Task<IActionResult> Me()
     {
         var user = await users.FindByIdAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         if (user is null) return Unauthorized();
-        var roles = await users.GetRolesAsync(user);
-        return Ok(new { user.Id, user.FullName, user.Email, user.EmployeeCode, user.DepartmentId,
-            role = roles.FirstOrDefault(), hasFace = user.FaceEmbeddingJson != null, deviceBound = user.DeviceId != null });
+        return Ok(await ProfileOf(user));
+    }
+
+    /// <summary>Tự cập nhật hồ sơ: họ tên và số điện thoại (để trống = xoá). Email, mã nhân viên, phòng ban do Admin quản lý.</summary>
+    [Authorize, HttpPut("me")]
+    public async Task<IActionResult> UpdateMe(UpdateProfileDto dto)
+    {
+        var user = await users.FindByIdAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (user is null) return Unauthorized();
+        user.FullName = dto.FullName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+        var result = await users.UpdateAsync(user);
+        if (!result.Succeeded) return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+        return Ok(await ProfileOf(user));
     }
 }

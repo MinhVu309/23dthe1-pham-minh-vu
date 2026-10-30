@@ -82,7 +82,7 @@ class _AttendanceMapPageState extends State<AttendanceMapPage> {
   void _showDetail(AttendanceRecord r) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.paper,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.fromLTRB(22, 20, 22, 28),

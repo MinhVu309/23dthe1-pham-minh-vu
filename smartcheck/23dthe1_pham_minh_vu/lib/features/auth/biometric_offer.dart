@@ -27,9 +27,15 @@ Future<void> offerBiometric(BuildContext context, AuthController auth, String la
     await auth.declineBiometricOffer();
     return;
   }
+  await enableBiometricWithFeedback(messenger, auth, label);
+}
+
+/// Bật đăng nhập sinh trắc và báo kết quả bằng SnackBar. Trả `true` nếu bật được.
+Future<bool> enableBiometricWithFeedback(ScaffoldMessengerState messenger, AuthController auth, String label) async {
   try {
     await auth.enableBiometric();
     messenger.showSnackBar(SnackBar(content: Text('Đã bật đăng nhập bằng $label.')));
+    return true;
   } on BiometricCancelled {
     messenger.showSnackBar(const SnackBar(content: Text('Chưa bật đăng nhập sinh trắc học.')));
   } on BiometricFailed {
@@ -37,4 +43,5 @@ Future<void> offerBiometric(BuildContext context, AuthController auth, String la
   } on ApiException catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
   }
+  return false;
 }
