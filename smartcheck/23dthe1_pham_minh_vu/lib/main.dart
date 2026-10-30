@@ -16,6 +16,7 @@ import 'data/repositories/location_repository.dart';
 import 'data/repositories/qr_repository.dart';
 import 'data/repositories/shift_repository.dart';
 import 'features/auth/auth_controller.dart';
+import 'services/biometric_service.dart';
 import 'services/device_id.dart';
 import 'services/google_auth_service.dart';
 import 'services/location_service.dart';
@@ -27,19 +28,27 @@ void main() {
   late final AuthController auth;
   final api = ApiClient(tokenProvider: () => auth.token);
   final repo = AuthRepository(api);
-  auth = AuthController(api: repo, store: SecureSessionStore(), google: GoogleAuthService());
+  final deviceId = StoredDeviceId();
+  auth = AuthController(
+    api: repo,
+    store: SecureSessionStore(),
+    google: GoogleAuthService(),
+    biometric: DeviceBiometricVault(),
+    deviceId: deviceId,
+  );
   api.onUnauthorized = auth.handleUnauthorized;
   auth.restore();
 
-  runApp(SmartCheckApp(auth: auth, api: api, authApi: repo));
+  runApp(SmartCheckApp(auth: auth, api: api, authApi: repo, deviceId: deviceId));
 }
 
 class SmartCheckApp extends StatelessWidget {
-  const SmartCheckApp({super.key, required this.auth, required this.api, required this.authApi});
+  const SmartCheckApp({super.key, required this.auth, required this.api, required this.authApi, this.deviceId});
 
   final AuthController auth;
   final ApiClient api;
   final AuthApi authApi;
+  final DeviceIdProvider? deviceId;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +65,7 @@ class SmartCheckApp extends StatelessWidget {
         Provider<QrRepository>(create: (_) => QrRepository(api)),
         Provider<FraudRepository>(create: (_) => FraudRepository(api)),
         Provider<AttendanceRepository>(create: (_) => AttendanceRepository(api)),
-        Provider<DeviceIdProvider>(create: (_) => StoredDeviceId()),
+        Provider<DeviceIdProvider>(create: (_) => deviceId ?? StoredDeviceId()),
         Provider<LocationProvider>(create: (_) => GeolocatorLocationProvider()),
       ],
       child: MaterialApp(

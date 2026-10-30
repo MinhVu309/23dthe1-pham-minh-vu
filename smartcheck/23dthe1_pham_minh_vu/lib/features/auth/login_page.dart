@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../../services/biometric_service.dart';
 import '../../services/google_auth_service.dart';
 import 'auth_controller.dart';
 import 'otp_page.dart';
@@ -26,11 +27,17 @@ class _LoginPageState extends State<LoginPage> {
   bool _googleBusy = false;
   String? _error;
   String? _info;
+  bool _bioBusy = false;
+  BiometricOption? _bio;
 
   @override
   void initState() {
     super.initState();
-    _info = context.read<AuthController>().takeNotice();
+    final auth = context.read<AuthController>();
+    _info = auth.takeNotice();
+    auth.biometricOption().then((o) {
+      if (mounted) setState(() => _bio = o);
+    });
   }
 
   @override
@@ -61,6 +68,43 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _biometric() async {
+    final auth = context.read<AuthController>();
+    setState(() {
+      _bioBusy = true;
+      _error = null;
+      _info = null;
+    });
+    try {
+      await auth.loginWithBiometric();
+    } on BiometricCancelled {
+      // người dùng tự đóng hộp thoại quét
+    } on BiometricFailed catch (e) {
+      final label = _bio?.label ?? 'sinh trắc học';
+      if (mounted) {
+        setState(() {
+          if (e.permanent) {
+            _bio = null;
+            _error = 'Máy này không còn dùng được $label (có thể bạn đã xoá vân tay/khuôn mặt). Hãy đăng nhập bằng mật khẩu và OTP.';
+          } else {
+            _error = 'Chưa xác thực được bằng $label, hãy thử lại hoặc dùng mật khẩu.';
+          }
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        // 401/403: token đã bị xoá, nút sẽ biến mất.
+        final gone = e.status == 401 || e.status == 403;
+        setState(() {
+          _error = e.message;
+          if (gone) _bio = null;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _bioBusy = false);
     }
   }
 
@@ -112,6 +156,31 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             if (_info != null) NoticeBanner(_info!, isError: false),
             if (_error != null) NoticeBanner(_error!),
+            if (_bio != null) ...[
+              FilledButton.icon(
+                onPressed: (_busy || _bioBusy) ? null : _biometric,
+                icon: _bioBusy
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.fingerprint_rounded, size: 28),
+                label: Text('Đăng nhập bằng ${_bio!.label}'),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Xin chào ${_bio!.fullName.isEmpty ? _bio!.email : _bio!.fullName}',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 16),
+              Row(children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('hoặc dùng mật khẩu', style: TextStyle(color: AppColors.textMuted)),
+                ),
+                const Expanded(child: Divider()),
+              ]),
+              const SizedBox(height: 16),
+            ],
             TextFormField(
               controller: _id,
               keyboardType: TextInputType.emailAddress,

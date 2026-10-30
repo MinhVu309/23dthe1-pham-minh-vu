@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>SmartCheck dùng camera để quét mã QR tại điểm chấm công.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>SmartCheck dùng Face ID để đăng nhập nhanh.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>SmartCheck cần vị trí của bạn để xác nhận bạn đang ở điểm chấm công.</string>
 	<key>LSRequiresIPhoneOS</key>

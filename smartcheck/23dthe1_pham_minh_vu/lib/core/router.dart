@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../data/models/session.dart';
 import '../features/admin/admin_home.dart';
 import '../features/auth/auth_controller.dart';
+import '../features/auth/biometric_offer.dart';
 import '../features/auth/login_page.dart';
 import '../features/employee/employee_home.dart';
 import '../features/manager_qr/manager_home.dart';
@@ -45,12 +46,25 @@ class _AuthGateState extends State<AuthGate> {
 
   /// Khi bị đăng xuất (kể cả do 401 lúc đang ở màn con), đóng hết màn con để thấy màn đăng nhập.
   void _onChange() {
+    if (_last != AuthStatus.signedIn && _auth.status == AuthStatus.signedIn) _maybeOfferBiometric();
     if (_last == AuthStatus.signedIn && _auth.status == AuthStatus.signedOut) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         navigatorKey.currentState?.popUntil((r) => r.isFirst);
       });
     }
     _last = _auth.status;
+  }
+
+  /// Vừa đăng nhập bằng mật khẩu + OTP: mời bật vân tay/khuôn mặt (một lần, nếu máy hỗ trợ).
+  Future<void> _maybeOfferBiometric() async {
+    final label = await _auth.takeBiometricOffer();
+    if (label == null || !mounted) return;
+    // Chờ OtpPage đóng xong (popUntil) rồi mới hiện hộp thoại trên trang chủ.
+    await WidgetsBinding.instance.endOfFrame;
+    final ctx = navigatorKey.currentContext;
+    if (!mounted || ctx == null || _auth.status != AuthStatus.signedIn) return;
+    // ignore: use_build_context_synchronously
+    await offerBiometric(ctx, _auth, label);
   }
 
   @override

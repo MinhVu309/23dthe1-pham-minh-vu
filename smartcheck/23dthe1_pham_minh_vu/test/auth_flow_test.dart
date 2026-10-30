@@ -14,6 +14,7 @@ import 'package:pham_minh_vu_23dthe1/features/auth/register_page.dart';
 import 'package:pham_minh_vu_23dthe1/features/employee/employee_home.dart';
 import 'package:pham_minh_vu_23dthe1/features/manager_qr/manager_home.dart';
 import 'package:pham_minh_vu_23dthe1/main.dart';
+import 'package:pham_minh_vu_23dthe1/services/biometric_service.dart';
 import 'package:pham_minh_vu_23dthe1/services/google_auth_service.dart';
 
 import 'support/fakes.dart';
@@ -28,16 +29,23 @@ Future<void> _advance(WidgetTester t, Duration d) async {
   await t.pump(d);
 }
 
-Future<AuthController> _pumpApp(WidgetTester t, FakeAuthApi api, {Session? saved}) async {
+Future<AuthController> _pumpApp(WidgetTester t, FakeAuthApi api, {Session? saved, FakeVault? vault}) async {
   _fakeNow = DateTime(2026, 10, 29, 9);
   nowProvider = () => _fakeNow;
   addTearDown(() => nowProvider = DateTime.now);
-  final auth = AuthController(api: api, store: MemoryStore(saved), google: FakeGoogle());
+  final auth = AuthController(
+    api: api,
+    store: MemoryStore(saved),
+    google: FakeGoogle(),
+    biometric: vault,
+    deviceId: vault == null ? null : FakeDeviceId(),
+  );
   await auth.restore();
   await t.pumpWidget(SmartCheckApp(
     auth: auth,
     api: ApiClient(tokenProvider: () => auth.token),
     authApi: api as AuthApi,
+    deviceId: FakeDeviceId(),
   ));
   await t.pump();
   return auth;
@@ -137,6 +145,82 @@ void main() {
     await t.pump(const Duration(milliseconds: 400));
     expect(auth.status, AuthStatus.signedOut);
     expect(find.text('SmartCheck'), findsOneWidget);
+  });
+
+  group('đăng nhập sinh trắc học', () {
+    testWidgets('đăng nhập mật khẩu + OTP lần đầu → hộp thoại mời → bật xong lần sau có nút vân tay', (t) async {
+      final api = FakeAuthApi();
+      final vault = FakeVault();
+      final auth = await _pumpApp(t, api, vault: vault);
+      expect(find.textContaining('Đăng nhập bằng vân tay'), findsNothing, reason: 'chưa bật thì chưa có nút');
+
+      await t.enterText(find.byType(TextFormField).at(0), 'a@test.local');
+      await t.enterText(find.byType(TextFormField).at(1), 'matkhau1');
+      await t.tap(find.text('Đăng nhập'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      await t.enterText(_otpField, '123456');
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      await t.pump(const Duration(milliseconds: 400));
+
+      expect(find.byType(EmployeeHome), findsOneWidget);
+      expect(find.text('Đăng nhập nhanh bằng vân tay?'), findsOneWidget);
+      await t.tap(find.text('Bật ngay'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      expect(vault.token, isNotNull);
+      expect(find.text('Đã bật đăng nhập bằng vân tay.'), findsOneWidget);
+
+      await auth.logout();
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      expect(find.text('Đăng nhập bằng vân tay'), findsOneWidget);
+
+      await t.tap(find.text('Đăng nhập bằng vân tay'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      expect(auth.status, AuthStatus.signedIn);
+      expect(find.byType(EmployeeHome), findsOneWidget);
+    });
+
+    testWidgets('bấm "Để sau" thì không bật và không mời lại', (t) async {
+      final vault = FakeVault();
+      await _pumpApp(t, FakeAuthApi(), vault: vault);
+      await t.enterText(find.byType(TextFormField).at(0), 'a@test.local');
+      await t.enterText(find.byType(TextFormField).at(1), 'matkhau1');
+      await t.tap(find.text('Đăng nhập'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      await t.enterText(_otpField, '123456');
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      await t.pump(const Duration(milliseconds: 400));
+
+      await t.tap(find.text('Để sau'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      expect(vault.token, isNull);
+      expect(vault.declined, isNotEmpty);
+    });
+
+    testWidgets('hết hạn/bị thu hồi (401): báo lỗi và nút vân tay biến mất', (t) async {
+      final api = FakeAuthApi()..biometricLoginError = ApiException('Phiên sinh trắc học đã hết hạn', status: 401);
+      final vault = FakeVault()
+        ..token = 'x'
+        ..stored = BiometricHint(userId: 'u', email: 'a@test.local', fullName: 'An', expiresAt: DateTime.now().toUtc().add(const Duration(days: 3)));
+      await _pumpApp(t, api, vault: vault);
+      await t.pump();
+      expect(find.text('Đăng nhập bằng vân tay'), findsOneWidget);
+      expect(find.text('Xin chào An'), findsOneWidget);
+
+      await t.tap(find.text('Đăng nhập bằng vân tay'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 400));
+      expect(find.text('Phiên sinh trắc học đã hết hạn'), findsOneWidget);
+      expect(find.text('Đăng nhập bằng vân tay'), findsNothing);
+      expect(vault.stored, isNull);
+    });
   });
 
   testWidgets('OTP sai: giữ ở màn OTP và hiện lỗi', (t) async {

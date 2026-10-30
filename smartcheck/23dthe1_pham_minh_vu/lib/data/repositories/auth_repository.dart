@@ -18,6 +18,15 @@ abstract interface class AuthApi {
   /// Quên mật khẩu, bước 2: đúng mã thì đổi mật khẩu và đăng nhập luôn.
   Future<Session> resetPassword(String email, String code, String newPassword);
   Future<Profile> me();
+
+  /// Đã đăng nhập: xin token đăng nhập sinh trắc gắn với thiết bị này. Trả `(token, hạn dùng)`.
+  Future<({String token, DateTime expiresAt})> biometricEnroll(String deviceId);
+
+  /// Chưa đăng nhập: đổi token sinh trắc (sau khi vân tay/khuôn mặt khớp) lấy phiên mới. 401 `BIOMETRIC_INVALID` nếu token hết hạn/bị thu hồi.
+  Future<Session> biometricLogin(String deviceId, String token);
+
+  /// Đã đăng nhập: thu hồi token sinh trắc của thiết bị này.
+  Future<void> biometricRevoke(String deviceId);
 }
 
 class AuthRepository implements AuthApi {
@@ -69,4 +78,19 @@ class AuthRepository implements AuthApi {
 
   @override
   Future<Profile> me() async => Profile.fromJson(_map(await _api.get('/api/auth/me')));
+
+  @override
+  Future<({String token, DateTime expiresAt})> biometricEnroll(String deviceId) async {
+    final r = _map(await _api.post('/api/auth/biometric/enroll', body: {'deviceId': deviceId}));
+    return (token: r['token'] as String, expiresAt: DateTime.parse(r['expiresAt'] as String).toUtc());
+  }
+
+  @override
+  Future<Session> biometricLogin(String deviceId, String token) async =>
+      Session.fromJson(_map(await _api.post('/api/auth/biometric/login', body: {'deviceId': deviceId, 'token': token})));
+
+  @override
+  Future<void> biometricRevoke(String deviceId) async {
+    await _api.post('/api/auth/biometric/revoke', body: {'deviceId': deviceId});
+  }
 }
