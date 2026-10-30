@@ -11,6 +11,8 @@ public record ResendOtpDto([Required] string UserNameOrEmail);
 public record ForgotPasswordDto([Required] string Email);
 public record ResetPasswordDto([Required] string Email, [Required] string Code, [Required, MinLength(6)] string NewPassword);
 public record GoogleLoginDto([Required] string IdToken, string? DeviceId);
+public record UpdateProfileDto([Required, StringLength(100, MinimumLength = 2)] string FullName,
+    [RegularExpression(@"^\+?[0-9 ]{9,15}$", ErrorMessage = "Số điện thoại không hợp lệ")] string? PhoneNumber);
 public record BiometricEnrollDto([Required, MaxLength(200)] string DeviceId);
 public record BiometricLoginDto([Required, MaxLength(200)] string DeviceId, [Required] string Token);
 public record BiometricEnrollResultDto(string Token, DateTime ExpiresAt);
