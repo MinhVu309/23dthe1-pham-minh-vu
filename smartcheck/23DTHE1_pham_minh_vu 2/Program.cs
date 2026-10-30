@@ -43,6 +43,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<BiometricService>();
 builder.Services.AddScoped<FraudService>();
 builder.Services.AddSingleton<QrTokenService>();
 
@@ -76,6 +77,24 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
+    // EnsureCreated không thêm bảng mới vào DB đã tồn tại, nên tự bổ sung bảng đăng nhập sinh trắc học nếu thiếu.
+    await db.Database.ExecuteSqlRawAsync("""
+        IF OBJECT_ID(N'[BiometricCredentials]', N'U') IS NULL
+        BEGIN
+            CREATE TABLE [BiometricCredentials] (
+                [Id] int NOT NULL IDENTITY(1,1) CONSTRAINT [PK_BiometricCredentials] PRIMARY KEY,
+                [UserId] nvarchar(450) NOT NULL,
+                [DeviceId] nvarchar(200) NOT NULL,
+                [TokenHash] nvarchar(64) NOT NULL,
+                [CreatedAt] datetime2 NOT NULL,
+                [ExpiresAt] datetime2 NOT NULL,
+                [LastUsedAt] datetime2 NULL,
+                [Revoked] bit NOT NULL
+            );
+            CREATE UNIQUE INDEX [IX_BiometricCredentials_TokenHash] ON [BiometricCredentials] ([TokenHash]);
+            CREATE INDEX [IX_BiometricCredentials_UserId_DeviceId] ON [BiometricCredentials] ([UserId], [DeviceId]);
+        END
+        """);
     await DbSeeder.SeedAsync(scope.ServiceProvider, cfg);
 }
 

@@ -15,6 +15,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Attendance> Attendances => Set<Attendance>();
     public DbSet<FraudAlert> FraudAlerts => Set<FraudAlert>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
+    public DbSet<BiometricCredential> BiometricCredentials => Set<BiometricCredential>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -28,6 +29,14 @@ public class AppDbContext : IdentityDbContext<AppUser>
             .OnDelete(DeleteBehavior.Restrict);
         b.Entity<FraudAlert>().HasOne(f => f.User).WithMany().HasForeignKey(f => f.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<BiometricCredential>(e =>
+        {
+            e.Property(c => c.UserId).HasMaxLength(450);
+            e.Property(c => c.DeviceId).HasMaxLength(200);
+            e.Property(c => c.TokenHash).HasMaxLength(64);
+            e.HasIndex(c => c.TokenHash).IsUnique();
+            e.HasIndex(c => new { c.UserId, c.DeviceId });
+        });
         b.Entity<LeaveRequest>().HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }

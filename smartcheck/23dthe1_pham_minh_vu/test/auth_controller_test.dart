@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pham_minh_vu_23dthe1/core/api_client.dart';
 import 'package:pham_minh_vu_23dthe1/data/models/session.dart';
 import 'package:pham_minh_vu_23dthe1/features/auth/auth_controller.dart';
+import 'package:pham_minh_vu_23dthe1/services/biometric_service.dart';
 import 'package:pham_minh_vu_23dthe1/services/google_auth_service.dart';
 
 import 'support/fakes.dart';
@@ -10,6 +11,8 @@ AuthController _make(FakeAuthApi api, MemoryStore store, [FakeGoogle? g]) =>
     AuthController(api: api, store: store, google: g ?? FakeGoogle());
 
 void main() {
+  _biometricTests();
+
   test('chưa có phiên đã lưu → signedOut', () async {
     final c = _make(FakeAuthApi(), MemoryStore());
     expect(c.status, AuthStatus.unknown);
@@ -104,5 +107,135 @@ void main() {
     expect(UserRole.parse('manager'), UserRole.manager);
     expect(UserRole.parse('Gì-đó'), UserRole.employee);
     expect(UserRole.parse(null), UserRole.employee);
+  });
+}
+
+AuthController _withBio(FakeAuthApi api, FakeVault vault) => AuthController(
+      api: api,
+      store: MemoryStore(),
+      google: FakeGoogle(),
+      biometric: vault,
+      deviceId: FakeDeviceId(),
+    );
+
+void _biometricTests() {
+  group('đăng nhập sinh trắc học', () {
+    test('mật khẩu + OTP xong thì mời bật; bật xong lần sau đăng nhập được bằng token đã cất', () async {
+      final api = FakeAuthApi();
+      final vault = FakeVault();
+      final c = _withBio(api, vault);
+
+      await c.verifyOtp('a@b.c', '123456');
+      expect(await c.takeBiometricOffer(), 'vân tay');
+      expect(await c.takeBiometricOffer(), isNull, reason: 'chỉ mời một lần mỗi lần đăng nhập');
+
+      await c.enableBiometric();
+      expect(api.lastBiometricDevice, 'device-1');
+      expect(vault.token, 'bio-token-1');
+      expect(await c.isBiometricEnabled(), isTrue);
+
+      await c.logout();
+      expect(c.status, AuthStatus.signedOut);
+      final option = await c.biometricOption();
+      expect(option!.label, 'vân tay');
+
+      await c.loginWithBiometric();
+      expect(api.lastBiometricToken, 'bio-token-1');
+      expect(c.status, AuthStatus.signedIn);
+      expect(await c.takeBiometricOffer(), isNull, reason: 'đăng nhập sinh trắc không mời lại');
+    });
+
+    test('không mời khi máy không hỗ trợ, đã bật sẵn, hoặc đã bấm "Để sau"', () async {
+      final unsupported = _withBio(FakeAuthApi(), FakeVault(supported: false));
+      await unsupported.verifyOtp('a@b.c', '123456');
+      expect(await unsupported.takeBiometricOffer(), isNull);
+
+      final vault = FakeVault();
+      final c = _withBio(FakeAuthApi(), vault);
+      await c.verifyOtp('a@b.c', '123456');
+      await c.declineBiometricOffer();
+      await c.verifyOtp('a@b.c', '123456');
+      expect(await c.takeBiometricOffer(), isNull);
+
+      final enabled = _withBio(FakeAuthApi(), FakeVault());
+      await enabled.verifyOtp('a@b.c', '123456');
+      await enabled.enableBiometric();
+      await enabled.verifyOtp('a@b.c', '123456');
+      expect(await enabled.takeBiometricOffer(), isNull);
+    });
+
+    test('huỷ hộp thoại quét lúc bật → thu hồi token vừa cấp, không lưu gì', () async {
+      final api = FakeAuthApi();
+      final vault = FakeVault()..scanError = const BiometricCancelled();
+      final c = _withBio(api, vault);
+      await c.verifyOtp('a@b.c', '123456');
+      await expectLater(c.enableBiometric(), throwsA(isA<BiometricCancelled>()));
+      expect(api.revokeCalls, 1);
+      expect(vault.stored, isNull);
+    });
+
+    test('người dùng huỷ lúc đăng nhập → vẫn giữ thông tin để thử lại', () async {
+      final vault = FakeVault();
+      final c = _withBio(FakeAuthApi(), vault);
+      await c.verifyOtp('a@b.c', '123456');
+      await c.enableBiometric();
+      await c.logout();
+
+      vault.scanError = const BiometricCancelled();
+      await expectLater(c.loginWithBiometric(), throwsA(isA<BiometricCancelled>()));
+      expect(c.status, AuthStatus.signedOut);
+      expect(vault.stored, isNotNull);
+    });
+
+    test('máy không còn sinh trắc học → xoá thông tin; lỗi tạm thời (khoá do quét sai) thì giữ', () async {
+      final vault = FakeVault();
+      final c = _withBio(FakeAuthApi(), vault);
+      await c.verifyOtp('a@b.c', '123456');
+      await c.enableBiometric();
+      await c.logout();
+
+      vault.scanError = const BiometricFailed('temporaryLockout');
+      await expectLater(c.loginWithBiometric(), throwsA(isA<BiometricFailed>()));
+      expect(vault.stored, isNotNull);
+
+      vault.scanError = const BiometricFailed('noBiometricsEnrolled', permanent: true);
+      await expectLater(c.loginWithBiometric(), throwsA(isA<BiometricFailed>()));
+      expect(vault.stored, isNull);
+      expect(await c.biometricOption(), isNull);
+    });
+
+    test('server báo token hết hạn/thu hồi (401) → xoá thông tin; mất mạng thì giữ', () async {
+      final api = FakeAuthApi();
+      final vault = FakeVault();
+      final c = _withBio(api, vault);
+      await c.verifyOtp('a@b.c', '123456');
+      await c.enableBiometric();
+      await c.logout();
+
+      api.biometricLoginError = ApiException('offline');
+      await expectLater(c.loginWithBiometric(), throwsA(isA<ApiException>()));
+      expect(vault.stored, isNotNull);
+
+      api.biometricLoginError = ApiException('hết hạn', status: 401, code: 'BIOMETRIC_INVALID');
+      await expectLater(c.loginWithBiometric(), throwsA(isA<ApiException>()));
+      expect(vault.stored, isNull);
+      expect(c.status, AuthStatus.signedOut);
+    });
+
+    test('tắt sinh trắc → thu hồi ở server và xoá trên máy; đặt lại mật khẩu cũng xoá', () async {
+      final api = FakeAuthApi();
+      final vault = FakeVault();
+      final c = _withBio(api, vault);
+      await c.verifyOtp('a@b.c', '123456');
+      await c.enableBiometric();
+      await c.disableBiometric();
+      expect(api.revokeCalls, 1);
+      expect(vault.stored, isNull);
+
+      await c.enableBiometric();
+      await c.logout();
+      await c.resetPassword('a@b.c', '123456', 'matkhau1');
+      expect(vault.stored, isNull, reason: 'server đã thu hồi token khi đổi mật khẩu');
+    });
   });
 }

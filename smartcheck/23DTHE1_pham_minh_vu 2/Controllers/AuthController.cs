@@ -12,7 +12,7 @@ namespace SmartCheck.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(UserManager<AppUser> users, OtpService otp, JwtService jwt, IConfiguration cfg) : ControllerBase
+public class AuthController(UserManager<AppUser> users, OtpService otp, JwtService jwt, BiometricService bio, IConfiguration cfg) : ControllerBase
 {
     private async Task<AppUser?> FindAsync(string key) =>
         await users.FindByEmailAsync(key) ?? await users.FindByNameAsync(key);
@@ -119,6 +119,7 @@ public class AuthController(UserManager<AppUser> users, OtpService otp, JwtServi
             user.EmailConfirmed = true;
             await users.UpdateAsync(user);
         }
+        await bio.RevokeAsync(user.Id); // đổi mật khẩu thì mọi thiết bị phải xác thực lại bằng mật khẩu + OTP
         return Ok(await IssueAsync(user));
     }
 
@@ -165,6 +166,36 @@ public class AuthController(UserManager<AppUser> users, OtpService otp, JwtServi
         }
         if (!user.IsActive) return StatusCode(403, new { message = "Tài khoản đã bị khoá" });
         return Ok(await IssueAsync(user));
+    }
+
+    /// <summary>
+    /// Bật đăng nhập sinh trắc học: đã đăng nhập (mật khẩu + OTP) thì xin token gắn với thiết bị này.
+    /// App cất token sau vân tay/khuôn mặt của máy; gọi lại sẽ thay token cũ của cùng thiết bị.
+    /// </summary>
+    [Authorize, HttpPost("biometric/enroll")]
+    public async Task<IActionResult> BiometricEnroll(BiometricEnrollDto dto)
+    {
+        var (token, expires) = await bio.EnrollAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, dto.DeviceId.Trim());
+        return Ok(new BiometricEnrollResultDto(token, expires));
+    }
+
+    /// <summary>Đăng nhập bằng token sinh trắc học (app chỉ gọi sau khi vân tay/khuôn mặt của máy đã khớp). Trả JWT như verify-otp.</summary>
+    [HttpPost("biometric/login")]
+    public async Task<IActionResult> BiometricLogin(BiometricLoginDto dto)
+    {
+        var userId = await bio.ValidateAsync(dto.DeviceId.Trim(), dto.Token);
+        var user = userId is null ? null : await users.FindByIdAsync(userId);
+        if (user is null) return Unauthorized(new { code = "BIOMETRIC_INVALID", message = "Phiên sinh trắc học đã hết hạn, hãy đăng nhập bằng mật khẩu và OTP." });
+        if (!user.IsActive) return StatusCode(403, new { message = "Tài khoản đã bị khoá" });
+        return Ok(await IssueAsync(user));
+    }
+
+    /// <summary>Tắt đăng nhập sinh trắc học trên thiết bị này.</summary>
+    [Authorize, HttpPost("biometric/revoke")]
+    public async Task<IActionResult> BiometricRevoke(BiometricEnrollDto dto)
+    {
+        await bio.RevokeAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, dto.DeviceId.Trim());
+        return NoContent();
     }
 
     [Authorize, HttpGet("me")]
