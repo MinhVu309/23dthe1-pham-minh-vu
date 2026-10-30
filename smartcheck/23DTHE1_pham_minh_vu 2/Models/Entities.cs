@@ -87,3 +87,19 @@ public class OtpCode
     public int Attempts { get; set; }
     public bool Used { get; set; }
 }
+
+/// <summary>
+/// Thông tin đăng nhập sinh trắc học của một thiết bị. Sau khi đăng nhập mật khẩu + OTP, app xin một token dài hạn
+/// gắn với (người dùng, thiết bị) và cất nó sau vân tay/khuôn mặt của máy. Server chỉ lưu băm của token.
+/// </summary>
+public class BiometricCredential
+{
+    public int Id { get; set; }
+    public string UserId { get; set; } = "";
+    public string DeviceId { get; set; } = "";
+    public string TokenHash { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+    public bool Revoked { get; set; }
+}
